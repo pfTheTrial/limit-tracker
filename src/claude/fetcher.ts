@@ -4,6 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import type { ClaudeUsage, ClaudeError } from "./types.ts";
+import { getOmpOAuth } from "../omp/store.ts";
 
 const CLAUDE_CONFIG_DIR_ENV = "CLAUDE_CONFIG_DIR";
 const DEFAULT_CLAUDE_CONFIG_DIR = path.join(os.homedir(), ".claude");
@@ -15,7 +16,7 @@ const REQUEST_TIMEOUT = 10000;
 // OAuth beta header required by Anthropic API (as of 2025-04-20)
 const CLAUDE_OAUTH_BETA_HEADER = "oauth-2025-04-20";
 
-type CredentialSource = "file" | "keychain";
+type CredentialSource = "file" | "keychain" | "omp";
 
 interface ClaudeCredentials {
   accessToken: string;
@@ -340,7 +341,7 @@ function extractCredentials(
   };
 }
 
-export function readClaudeCredentials(): { credentials: ClaudeCredentials | null; error: ClaudeError | null } {
+export async function readClaudeCredentials(): Promise<{ credentials: ClaudeCredentials | null; error: ClaudeError | null }> {
   // Strategy 1: Try configured/default credential paths first
   for (const credentialsPath of resolveClaudeCredentialsPaths()) {
     if (!fs.existsSync(credentialsPath)) continue;
@@ -391,6 +392,35 @@ export function readClaudeCredentials(): { credentials: ClaudeCredentials | null
     }
   }
 
+  // Strategy 3: oh-my-pi harness login (`omp auth-broker login anthropic`).
+  // Fallback only — native logins above always win. omp tokens are used as-is
+  // and never persisted anywhere (see persistRefreshedCredentials); an expired
+  // token is still returned so the public-client refresh can rescue it, exactly
+  // like native file credentials. Scope metadata is unavailable from omp, so
+  // the scope gate in extractCredentials is bypassed here — the usage API call
+  // itself is the authority (401 surfaces as unauthorized, not fabricated data).
+  const omp = await getOmpOAuth("anthropic");
+  if (omp?.access) {
+    return {
+      credentials: {
+        accessToken: omp.access,
+        refreshToken: omp.refresh,
+        expiresAt: omp.expires,
+        scopes: [],
+        source: "omp",
+        raw: {
+          claudeAiOauth: {
+            accessToken: omp.access,
+            refreshToken: omp.refresh,
+            expiresAt: omp.expires,
+            scopes: [],
+          },
+        },
+      },
+      error: null,
+    };
+  }
+
   return {
     credentials: null,
     error: {
@@ -401,6 +431,11 @@ export function readClaudeCredentials(): { credentials: ClaudeCredentials | null
 }
 
 function persistRefreshedCredentials(credentials: ClaudeCredentials, refreshed: OAuthRefreshResponse) {
+  // omp credentials belong to the harness: refreshed tokens stay in memory
+  // only and are never written to any file or OS credential store.
+  if (credentials.source === "omp") {
+    return;
+  }
   const raw = credentials.raw || {};
   const oauth = raw.claudeAiOauth || {};
 

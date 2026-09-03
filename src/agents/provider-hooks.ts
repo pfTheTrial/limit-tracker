@@ -19,6 +19,7 @@ import { fetchGeminiUsage, readGeminiAuthKey } from "../gemini/fetcher.ts";
 import type { GeminiError, GeminiUsage } from "../gemini/types.ts";
 import { fetchOpencodegoUsage, fetchOpencodegoUsageWithApiKey } from "../opencode-go/fetcher.ts";
 import type { OpencodegoError, OpencodegoUsage } from "../opencode-go/types.ts";
+import { findOmpAgentDir, getOmpApiKey, getOmpOAuth, isOmpTokenFresh } from "../omp/store.ts";
 import { resolveZaiAuthTokens } from "../zai/auth.ts";
 import { fetchZaiUsage, ZAI_OPENCODE_KEY } from "../zai/fetcher.ts";
 import type { ZaiError, ZaiUsage } from "../zai/types.ts";
@@ -48,9 +49,9 @@ function prefValue(key: keyof SharedPrefs): string {
 
 export const useClaudeUsage = createUsageHook<ClaudeUsage, ClaudeError>({
   agentId: "claude",
-  resolveAuthKey: async () => readClaudeCredentials().credentials?.accessToken ?? "",
+  resolveAuthKey: async () => (await readClaudeCredentials()).credentials?.accessToken ?? "",
   fetcher: async () => {
-    const { credentials, error } = readClaudeCredentials();
+    const { credentials, error } = await readClaudeCredentials();
     if (!credentials) return { usage: null, error };
     return fetchClaudeUsage(credentials);
   },
@@ -134,11 +135,16 @@ export const useOpencodegoUsage = createUsageHook<OpencodegoUsage, OpencodegoErr
     if (envApiKey) {
       return fetchOpencodegoUsageWithApiKey(envApiKey);
     }
+    // oh-my-pi harness login (`omp auth-broker login opencode-go`) as fallback.
+    const ompApiKey = await getOmpApiKey("opencode-go");
+    if (ompApiKey) {
+      return fetchOpencodegoUsageWithApiKey(ompApiKey);
+    }
     return {
       usage: null,
       error: {
         type: "not_configured",
-        message: "OpenCode Go not configured. Add your API key in settings or set OPENCODE_API_KEY.",
+        message: "OpenCode Go not configured. Add your API key in settings, set OPENCODE_API_KEY, or log in via omp.",
       },
     };
   },
@@ -159,8 +165,30 @@ export const useCodexAccounts = createAccountsHook<
           id: `codex-home-${homeIndex}-${account.id}`,
         })),
     );
+    // oh-my-pi harness login (`omp auth-broker login openai-codex`) as fallback.
+    // Skipped when a native login already covers the same account ID, and when
+    // the harness token is expired (it cannot be refreshed from here).
+    const nativeAccountIds = new Set(
+      [...defaultAccounts, ...additionalAccounts].map((account) => account.accountId?.trim()).filter(Boolean),
+    );
+    const ompAgentDir = findOmpAgentDir();
+    const omp = await getOmpOAuth("openai-codex");
+    const ompAccounts =
+      ompAgentDir && omp && isOmpTokenFresh(omp) && omp.accountId && !nativeAccountIds.has(omp.accountId)
+        ? [
+            {
+              id: "codex-omp",
+              label: omp.email ?? "omp",
+              token: omp.access,
+              accountId: omp.accountId,
+              userId: null,
+              source: "stored" as const,
+              authFilePath: ompAgentDir,
+            },
+          ]
+        : [];
     return buildCodexAccountCandidates(
-      [...defaultAccounts, ...additionalAccounts],
+      [...defaultAccounts, ...additionalAccounts, ...ompAccounts],
       await loadAccounts("codex"),
     );
   },
@@ -174,7 +202,17 @@ export const useCodexAccounts = createAccountsHook<
         },
       };
     }
-    return fetchCodexUsage(account.token, account.accountId);
+    const result = await fetchCodexUsage(account.token, account.accountId);
+    if (account.id === "codex-omp" && result.error?.type === "unauthorized") {
+      return {
+        usage: null,
+        error: {
+          type: "unauthorized" as const,
+          message: "omp Codex token expired or invalid. Re-login with `omp auth-broker login openai-codex`.",
+        },
+      };
+    }
+    return result;
   },
   resolveAccountAuthKey: (account) =>
     [account.token, account.accountId ?? "", String(account.needsAccountId)].join("\n"),

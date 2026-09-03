@@ -72,6 +72,9 @@ On Linux/macOS the dev flow works directly.
 - **Gemini** — OAuth-backed quota API using Gemini CLI credentials.
 - **OpenCode Go** — Usage API for subscription tracking.
 - **z.ai** — API token for personal/team quota, 5-hour, and hourly usage windows.
+- **oh-my-pi harness (fallback)** — `omp auth-broker login` credentials are reused automatically
+  for Claude (`anthropic`), Codex (`openai-codex`) and OpenCode Go when no native login,
+  preference or env credential exists. Tokens are used as-is and never written anywhere.
 
 > **Phase 2** (fora da v1): `aihubmix`, `amp`, `antigravity`, `clinepass`, `droid`, `grok`, `kimi`, `minimax`, `minimaxcn`, `synthetic` — fora do registry até a v1 estabilizar.
 

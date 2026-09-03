@@ -5,6 +5,13 @@
 > (AIHubMix, Amp, Antigravity, ClinePass, Droid, Grok, Kimi, MiniMax, Synthetic, ...) that
 > were developed in this repo's history and moved out of the extension until v1 stabilizes.
 
+## [Unreleased]
+
+- oh-my-pi (`omp`) harness logins as fallback credential source for Claude, Codex
+  (as an `omp` account row with its own re-login guidance) and OpenCode Go —
+  used only when no preference, env or native login exists; tokens never persisted
+- Remove dead `src/utils/` (credential-resolver, error-handler — unreferenced)
+
 ## [Add AIHubMix Usage] - 2026-08-22
 
 - Add AIHubMix balance monitoring to the main list and menu bar
