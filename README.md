@@ -73,7 +73,7 @@ On Linux/macOS the dev flow works directly.
 - **OpenCode Go** — Usage API for subscription tracking.
 - **z.ai** — API token for personal/team quota, 5-hour, and hourly usage windows.
 
-> **Phase 2** (not in v1): `aihubmix`, `amp`, `antigravity`, `clinepass`, `droid`, `grok`, `kimi`, `minimax`, `minimaxcn`, `synthetic` — fora do registry até a v1 estabilizar (ver `../../phase-2` local).
+> **Phase 2** (fora da v1): `aihubmix`, `amp`, `antigravity`, `clinepass`, `droid`, `grok`, `kimi`, `minimax`, `minimaxcn`, `synthetic` — fora do registry até a v1 estabilizar.
 
 ---
 
@@ -149,8 +149,6 @@ limit-tracker/
 │   ├── claude/  codex/  copilot/  cursor/  deepseek/  gemini/  opencode-go/  zai/  # core 8 (v1)
 │   │   └── fetcher.ts renderer.tsx types.ts   # per-provider logic
 │   └── **/*.test.ts           # Node test-runner tests (colocated)
-├── WINDOWS-TEST.md            # Windows 0.27.1 build/install gotchas
-├── LINUX-TEST.md              # Linux validation guide
 └── README.md
 ```
 

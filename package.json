@@ -1,5 +1,6 @@
 {
   "name": "limit-tracker",
+  "version": "1.0.0",
   "title": "Limit Tracker",
   "description": "Track and monitor AI coding agent limits and usage across Claude, Copilot, Cursor, DeepSeek, Gemini, Codex, OpenCode Go, and z.ai",
   "categories": [
@@ -11,7 +12,6 @@
   "scripts": {
     "build": "vici build",
     "dev": "vici develop",
-    "format": "prettier --write .",
     "test": "node --test --experimental-strip-types 'src/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   },

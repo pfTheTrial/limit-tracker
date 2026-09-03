@@ -1,4 +1,9 @@
-# Agent Usage Changelog
+# Limit Tracker Changelog
+
+> v1 (store submission) ships the **core 8** providers: Claude, Codex, Copilot, Cursor,
+> DeepSeek, Gemini, OpenCode Go, z.ai. Older entries below mention experimental providers
+> (AIHubMix, Amp, Antigravity, ClinePass, Droid, Grok, Kimi, MiniMax, Synthetic, ...) that
+> were developed in this repo's history and moved out of the extension until v1 stabilizes.
 
 ## [Add AIHubMix Usage] - 2026-08-22
 
