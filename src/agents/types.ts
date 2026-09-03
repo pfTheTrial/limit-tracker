@@ -6,6 +6,7 @@ export type AgentId =
   | "claude"
   | "clinepass"
   | "codex"
+  | "commandcode"
   | "copilot"
   | "cursor"
   | "deepseek"
@@ -52,6 +53,7 @@ export interface AgentVisibilityPreferences {
   showClaude: boolean;
   showClinePass: boolean;
   showCodex: boolean;
+  showCommandcode: boolean;
   showCopilot: boolean;
   showCursor: boolean;
   showDeepSeek: boolean;

@@ -19,8 +19,10 @@ import type { AccountUsageState } from "./accounts/types.ts";
 import { formatErrorMarkdown } from "./agents/detail-format.ts";
 import { formatClock, latestTimestamp } from "./agents/format.ts";
 import {
+  useAntigravityUsage,
   useClaudeUsage,
   useCodexAccounts,
+  useCommandcodeUsage,
   useCopilotUsage,
   useCursorUsage,
   useDeepSeekUsage,
@@ -30,10 +32,14 @@ import {
 } from "./agents/provider-hooks.ts";
 import type { Accessory, AgentDefinition, AgentVisibilityPreferences, LimitView, UsageState } from "./agents/types.ts";
 import { getListIcon } from "./agents/ui.tsx";
+import { formatAntigravityUsageText, getAntigravityAccessory, renderAntigravityDetail } from "./antigravity/renderer.tsx";
+import type { AntigravityError, AntigravityUsage } from "./antigravity/types.ts";
 import { formatClaudeUsageText, getClaudeAccessory, renderClaudeDetail } from "./claude/renderer.tsx";
 import type { ClaudeError, ClaudeUsage } from "./claude/types.ts";
 import { formatCodexUsageText, getCodexAccessory, renderCodexDetail } from "./codex/renderer.tsx";
 import type { CodexError, CodexUsage } from "./codex/types.ts";
+import { formatCommandcodeUsageText, getCommandcodeAccessory, renderCommandcodeDetail } from "./commandcode/renderer.tsx";
+import type { CommandcodeError, CommandcodeUsage } from "./commandcode/types.ts";
 import { formatCopilotUsageText, getCopilotAccessory, renderCopilotDetail } from "./copilot/renderer.tsx";
 import type { CopilotError, CopilotUsage } from "./copilot/types.ts";
 import { formatCursorUsageText, getCursorAccessory, renderCursorDetail } from "./cursor/renderer.tsx";
@@ -60,15 +66,17 @@ interface AgentRegistryEntry<TUsage, TError extends ErrorLike> extends Omit<Agen
   formatUsageText: (usage: TUsage | null, error: TError | null) => string;
 }
 
-type CoreAgentId = "claude" | "codex" | "copilot" | "cursor" | "deepseek" | "gemini" | "opencode-go" | "zai";
+type CoreAgentId = "antigravity" | "claude" | "codex" | "commandcode" | "copilot" | "cursor" | "deepseek" | "gemini" | "opencode-go" | "zai";
 
-const CORE_AGENT_ORDER: CoreAgentId[] = ["claude", "copilot", "cursor", "deepseek", "gemini", "opencode-go", "codex", "zai"];
+const CORE_AGENT_ORDER: CoreAgentId[] = ["claude", "copilot", "cursor", "deepseek", "gemini", "opencode-go", "codex", "zai", "antigravity", "commandcode"];
 
 type MultiAccountAgentId = "codex" | "zai";
 
 interface AgentUsageById {
+  antigravity: AntigravityUsage;
   claude: ClaudeUsage;
   codex: CodexUsage;
+  commandcode: CommandcodeUsage;
   copilot: CopilotUsage;
   cursor: CursorUsage;
   deepseek: DeepSeekUsage;
@@ -78,8 +86,10 @@ interface AgentUsageById {
 }
 
 interface AgentErrorById {
+  antigravity: AntigravityError;
   claude: ClaudeError;
   codex: CodexError;
+  commandcode: CommandcodeError;
   copilot: CopilotError;
   cursor: CursorError;
   deepseek: DeepSeekError;
@@ -221,6 +231,30 @@ const AGENT_REGISTRY: AgentRegistry = {
     getAccessory: getZaiAccessory,
     formatUsageText: formatZaiUsageText,
   },
+  antigravity: {
+    id: "antigravity",
+    name: "Antigravity",
+    icon: "antigravity-icon.svg",
+    description: "Google Antigravity quotas (via omp snapshots)",
+    isSupported: true,
+    settingsUrl: "https://omp.sh/docs/providers",
+    useUsage: useAntigravityUsage,
+    renderDetail: renderAntigravityDetail,
+    getAccessory: getAntigravityAccessory,
+    formatUsageText: formatAntigravityUsageText,
+  },
+  commandcode: {
+    id: "commandcode",
+    name: "Command Code",
+    icon: "commandcode-icon.svg",
+    description: "Command Code credit usage",
+    isSupported: true,
+    settingsUrl: "https://commandcode.ai",
+    useUsage: useCommandcodeUsage,
+    renderDetail: renderCommandcodeDetail,
+    getAccessory: getCommandcodeAccessory,
+    formatUsageText: formatCommandcodeUsageText,
+  },
 };
 
 const AGENT_IDS: CoreAgentId[] = [...CORE_AGENT_ORDER];
@@ -335,6 +369,8 @@ export default function Command(props: LaunchProps<{ launchContext: CommandLaunc
   }, []);
 
   const claudeState = AGENT_REGISTRY.claude.useUsage(Boolean(prefs.showClaude));
+  const antigravityState = AGENT_REGISTRY.antigravity.useUsage(Boolean(prefs.showAntigravity));
+  const commandcodeState = AGENT_REGISTRY.commandcode.useUsage(Boolean(prefs.showCommandcode));
   const copilotState = AGENT_REGISTRY.copilot.useUsage(Boolean(prefs.showCopilot));
   const cursorState = AGENT_REGISTRY.cursor.useUsage(Boolean(prefs.showCursor));
   const deepseekState = AGENT_REGISTRY.deepseek.useUsage(Boolean(prefs.showDeepSeek));
@@ -364,6 +400,8 @@ export default function Command(props: LaunchProps<{ launchContext: CommandLaunc
       opencodegoState,
       Boolean(prefs.showOpencodeGo),
     ),
+    antigravity: createAgentView(AGENT_REGISTRY.antigravity, antigravityState, Boolean(prefs.showAntigravity)),
+    commandcode: createAgentView(AGENT_REGISTRY.commandcode, commandcodeState, Boolean(prefs.showCommandcode)),
   };
 
   const claudeLimitView = (prefs.claudeLimitView ?? "auto") as LimitView;

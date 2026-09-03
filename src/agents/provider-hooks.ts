@@ -1,8 +1,13 @@
 import { getPreferenceValues } from "@vicinae/api";
 
 import { loadAccounts } from "../accounts/storage.ts";
+import { fetchAntigravityUsage } from "../antigravity/fetcher.ts";
+import type { AntigravityError, AntigravityUsage } from "../antigravity/types.ts";
 import { fetchClaudeUsage, readClaudeCredentials } from "../claude/fetcher.ts";
 import type { ClaudeError, ClaudeUsage } from "../claude/types.ts";
+import { resolveCommandcodeApiKey } from "../commandcode/auth.ts";
+import { fetchCommandcodeUsage } from "../commandcode/fetcher.ts";
+import type { CommandcodeError, CommandcodeUsage } from "../commandcode/types.ts";
 import { buildCodexAccountCandidates } from "../codex/accounts.ts";
 import { listCodexOAuthAccounts, parseAdditionalCodexHomes } from "../codex/auth.ts";
 import { fetchCodexUsage } from "../codex/fetcher.ts";
@@ -19,7 +24,7 @@ import { fetchGeminiUsage, readGeminiAuthKey } from "../gemini/fetcher.ts";
 import type { GeminiError, GeminiUsage } from "../gemini/types.ts";
 import { fetchOpencodegoUsage, fetchOpencodegoUsageWithApiKey } from "../opencode-go/fetcher.ts";
 import type { OpencodegoError, OpencodegoUsage } from "../opencode-go/types.ts";
-import { findOmpAgentDir, getOmpApiKey, getOmpOAuth, isOmpTokenFresh } from "../omp/store.ts";
+import { findOmpAgentDir, getOmpApiKey, getOmpOAuth, isOmpTokenFresh, readOmpUsageSnapshots } from "../omp/store.ts";
 import { resolveZaiAuthTokens } from "../zai/auth.ts";
 import { fetchZaiUsage, ZAI_OPENCODE_KEY } from "../zai/fetcher.ts";
 import type { ZaiError, ZaiUsage } from "../zai/types.ts";
@@ -34,6 +39,7 @@ import { createAccountsHook, createUsageHook } from "./hooks.ts";
 
 type SharedPrefs = {
   additionalCodexHomes?: string;
+  commandcodeApiKey?: string;
   copilotAuthToken?: string;
   cursorCookieHeader?: string;
   deepseekApiKey?: string;
@@ -54,6 +60,33 @@ export const useClaudeUsage = createUsageHook<ClaudeUsage, ClaudeError>({
     const { credentials, error } = await readClaudeCredentials();
     if (!credentials) return { usage: null, error };
     return fetchClaudeUsage(credentials);
+  },
+});
+
+export const useAntigravityUsage = createUsageHook<AntigravityUsage, AntigravityError>({
+  agentId: "antigravity",
+  resolveAuthKey: async () =>
+    (await readOmpUsageSnapshots("google-antigravity"))
+      ?.map((entry) => `${entry.limitId}:${entry.usedFraction}:${entry.status}`)
+      .join("|") ?? "",
+  fetcher: async () => fetchAntigravityUsage(),
+});
+
+export const useCommandcodeUsage = createUsageHook<CommandcodeUsage, CommandcodeError>({
+  agentId: "commandcode",
+  resolveAuthKey: async () => (await resolveCommandcodeApiKey(prefValue("commandcodeApiKey"))) ?? "",
+  fetcher: async () => {
+    const apiKey = await resolveCommandcodeApiKey(prefValue("commandcodeApiKey"));
+    if (!apiKey) {
+      return {
+        usage: null,
+        error: {
+          type: "not_configured",
+          message: "Command Code not configured. Run `cmd login`, set COMMANDCODE_API_KEY, or add a key in extension settings.",
+        },
+      };
+    }
+    return fetchCommandcodeUsage(apiKey);
   },
 });
 

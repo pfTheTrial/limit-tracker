@@ -13,8 +13,10 @@ import { useMemo } from "react";
 import { formatClock, latestTimestamp } from "./agents/format.ts";
 import { sortByDefaultAgentOrder } from "./agents/order.ts";
 import {
+  useAntigravityUsage,
   useClaudeUsage,
   useCodexAccounts,
+  useCommandcodeUsage,
   useCopilotUsage,
   useCursorUsage,
   useDeepSeekUsage,
@@ -24,8 +26,10 @@ import {
 } from "./agents/provider-hooks.ts";
 import type { AgentId, Accessory, AgentVisibilityPreferences, LimitView } from "./agents/types.ts";
 import { getThemeIcon } from "./agents/ui.tsx";
+import { getAntigravityAccessory } from "./antigravity/renderer.tsx";
 import { getClaudeAccessory } from "./claude/renderer.tsx";
 import { getCodexAccessory } from "./codex/renderer.tsx";
+import { getCommandcodeAccessory } from "./commandcode/renderer.tsx";
 import { getCopilotAccessory } from "./copilot/renderer.tsx";
 import { getCursorAccessory } from "./cursor/renderer.tsx";
 import { getDeepSeekAccessory } from "./deepseek/renderer.tsx";
@@ -71,6 +75,8 @@ function parsePinnedProviders(pinned?: string): AgentId[] {
         "gemini",
         "opencode-go",
         "zai",
+        "antigravity",
+        "commandcode",
       ];
       return valid.includes(id as AgentId);
     })
@@ -82,6 +88,8 @@ export default function MenuBarCommand() {
   const pinnedIds = parsePinnedProviders(prefs.pinnedProviders);
 
   const isClaudeVisible = Boolean(prefs.showClaude);
+  const isAntigravityVisible = Boolean(prefs.showAntigravity);
+  const isCommandcodeVisible = Boolean(prefs.showCommandcode);
   const isCodexVisible = Boolean(prefs.showCodex);
   const isCopilotVisible = Boolean(prefs.showCopilot);
   const isCursorVisible = Boolean(prefs.showCursor);
@@ -91,6 +99,8 @@ export default function MenuBarCommand() {
   const isZaiVisible = Boolean(prefs.showZai);
 
   const claudeState = useClaudeUsage(isClaudeVisible);
+  const antigravityState = useAntigravityUsage(isAntigravityVisible);
+  const commandcodeState = useCommandcodeUsage(isCommandcodeVisible);
   const codexState = useCodexAccounts(isCodexVisible);
   const copilotState = useCopilotUsage(isCopilotVisible);
   const cursorState = useCursorUsage(isCursorVisible);
@@ -161,14 +171,41 @@ export default function MenuBarCommand() {
         revalidate: opencodegoState.revalidate,
         lastFetchedAt: opencodegoState.lastFetchedAt,
       },
+      {
+        id: "antigravity",
+        name: "Antigravity",
+        icon: getThemeIcon("antigravity-icon.svg"),
+        visible: isAntigravityVisible,
+        isLoading: antigravityState.isLoading,
+        accessory: getAntigravityAccessory(antigravityState.usage, antigravityState.error, antigravityState.isLoading),
+        revalidate: antigravityState.revalidate,
+        lastFetchedAt: antigravityState.lastFetchedAt,
+      },
+      {
+        id: "commandcode",
+        name: "Command Code",
+        icon: getThemeIcon("commandcode-icon.svg"),
+        visible: isCommandcodeVisible,
+        isLoading: commandcodeState.isLoading,
+        accessory: getCommandcodeAccessory(commandcodeState.usage, commandcodeState.error, commandcodeState.isLoading),
+        revalidate: commandcodeState.revalidate,
+        lastFetchedAt: commandcodeState.lastFetchedAt,
+      },
     ],
     [
       isClaudeVisible,
+      isAntigravityVisible,
+      isCommandcodeVisible,
       isCopilotVisible,
       isCursorVisible,
       isDeepSeekVisible,
       isGeminiVisible,
       isOpencodeGoVisible,
+      antigravityState.isLoading,
+      antigravityState.usage,
+      antigravityState.error,
+      antigravityState.revalidate,
+      antigravityState.lastFetchedAt,
       claudeState.isLoading,
       claudeState.usage,
       claudeState.error,

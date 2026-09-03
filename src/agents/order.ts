@@ -7,6 +7,7 @@ export const DEFAULT_AGENT_ORDER = [
   "claude",
   "clinepass",
   "codex",
+  "commandcode",
   "copilot",
   "cursor",
   "deepseek",

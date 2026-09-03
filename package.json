@@ -2,7 +2,7 @@
   "name": "limit-tracker",
   "version": "1.0.0",
   "title": "Limit Tracker",
-  "description": "Track and monitor AI coding agent limits and usage across Claude, Copilot, Cursor, DeepSeek, Gemini, Codex, OpenCode Go, and z.ai",
+  "description": "Track and monitor AI coding agent limits and usage across Claude, Copilot, Cursor, DeepSeek, Gemini, Codex, OpenCode Go, z.ai, Antigravity and Command Code",
   "categories": [
     "Productivity"
   ],
@@ -159,6 +159,31 @@
       "type": "password",
       "title": "z.ai API Token (Optional)",
       "description": "Optional fallback token. Usually auto-detected from ZAI_API_KEY or GLM_API_KEY environment variable.",
+      "required": false
+    },
+    {
+      "name": "showAntigravity",
+      "type": "checkbox",
+      "label": "Show Antigravity",
+      "title": "Show Antigravity",
+      "description": "Show Antigravity quota snapshots (via omp) in the list",
+      "default": true,
+      "required": false
+    },
+    {
+      "name": "showCommandcode",
+      "type": "checkbox",
+      "label": "Show Command Code",
+      "title": "Show Command Code",
+      "description": "Show Command Code credit usage in the list",
+      "default": true,
+      "required": false
+    },
+    {
+      "name": "commandcodeApiKey",
+      "type": "password",
+      "title": "Command Code API Key (Optional)",
+      "description": "Optional key. Usually auto-detected from ~/.commandcode/auth.json after `cmd login`, or COMMANDCODE_API_KEY.",
       "required": false
     },
     {

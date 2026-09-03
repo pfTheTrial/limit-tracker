@@ -49,11 +49,18 @@ let cachedDir: string | null = null;
 let cachedStore: OmpStore | null = null;
 let cachedAt = 0;
 
+let cachedSnapshotsDir: string | null = null;
+let cachedSnapshots: OmpUsageSnapshot[] | null = null;
+let cachedSnapshotsAt = 0;
+
 /** Test hook: drop the in-memory cache. */
 export function clearOmpStoreCache(): void {
   cachedDir = null;
   cachedStore = null;
   cachedAt = 0;
+  cachedSnapshotsDir = null;
+  cachedSnapshots = null;
+  cachedSnapshotsAt = 0;
 }
 
 export function findOmpAgentDir(homeDir: string = os.homedir()): string | null {
@@ -239,4 +246,113 @@ export async function getOmpApiKey(providerId: string, agentDir?: string): Promi
 export async function getOmpOAuth(providerId: string, agentDir?: string): Promise<OmpOAuthCredential | null> {
   const store = await readOmpStore(agentDir);
   return store?.oauth.find((entry) => entry.provider === providerId) ?? null;
+}
+
+export interface OmpUsageSnapshot {
+  provider: string;
+  limitId: string;
+  label: string;
+  windowLabel: string;
+  /** Fraction used, 0..1. */
+  usedFraction: number;
+  /** omp status: "ok" | "warning" | "exhausted" | ... */
+  status: string;
+  /** Epoch milliseconds, when omp records one. */
+  resetsAtMs: number | null;
+}
+
+interface OmpUsageSnapshotRow {
+  provider: unknown;
+  limit_id: unknown;
+  label: unknown;
+  window_label: unknown;
+  used_fraction: unknown;
+  status: unknown;
+  resets_at: unknown;
+}
+
+/**
+ * Parse one `usage_history` row. Pure function (tested).
+ *
+ * Honesty contract: omp records NO timestamps on these rows, so a snapshot
+ * carries no "as of" time. Consumers must label values as harness snapshots
+ * (e.g. "via omp"), must never render reset countdowns from null resets, and
+ * must prefer direct provider APIs whenever available.
+ */
+export function parseOmpUsageSnapshotRow(row: OmpUsageSnapshotRow): OmpUsageSnapshot | null {
+  if (typeof row.provider !== "string" || !row.provider.trim()) return null;
+  if (typeof row.limit_id !== "string" || !row.limit_id.trim()) return null;
+  if (typeof row.used_fraction !== "number" || !Number.isFinite(row.used_fraction)) return null;
+  const usedFraction = Math.min(1, Math.max(0, row.used_fraction));
+  const resetsAt =
+    typeof row.resets_at === "number" && Number.isFinite(row.resets_at) && row.resets_at > 0
+      ? row.resets_at * 1000
+      : null;
+  return {
+    provider: row.provider.trim(),
+    limitId: row.limit_id.trim(),
+    label: typeof row.label === "string" && row.label.trim() ? row.label.trim() : row.limit_id.trim(),
+    windowLabel:
+      typeof row.window_label === "string" && row.window_label.trim() ? row.window_label.trim() : "",
+    usedFraction,
+    status: typeof row.status === "string" && row.status.trim() ? row.status.trim() : "unknown",
+    resetsAtMs: resetsAt,
+  };
+}
+
+/**
+ * Quota snapshots recorded by the harness (`usage_history` table), optionally
+ * filtered by omp provider id (e.g. "google-antigravity"). Null when omp is
+ * absent or unreadable. TTL-cached like credentials.
+ */
+export async function readOmpUsageSnapshots(
+  providerId?: string,
+  agentDir?: string,
+): Promise<OmpUsageSnapshot[] | null> {
+  const dir = agentDir ?? findOmpAgentDir();
+  if (!dir) return null;
+
+  const now = Date.now();
+  if (cachedSnapshotsDir === dir && now - cachedSnapshotsAt < OMP_STORE_TTL_MS) {
+    return filterSnapshots(cachedSnapshots, providerId);
+  }
+
+  const snapshots: OmpUsageSnapshot[] = [];
+  const snapshot = await openOmpSnapshot(dir);
+  if (!snapshot) {
+    cachedSnapshotsDir = dir;
+    cachedSnapshots = null;
+    cachedSnapshotsAt = now;
+    return null;
+  }
+  try {
+    const rows = snapshot.db
+      .prepare("SELECT provider, limit_id, label, window_label, used_fraction, status, resets_at FROM usage_history")
+      .all() as unknown as OmpUsageSnapshotRow[];
+    for (const row of rows) {
+      const parsed = parseOmpUsageSnapshotRow(row);
+      if (parsed) snapshots.push(parsed);
+    }
+  } catch {
+    cachedSnapshotsDir = dir;
+    cachedSnapshots = null;
+    cachedSnapshotsAt = now;
+    return null;
+  } finally {
+    snapshot.dispose();
+  }
+
+  cachedSnapshotsDir = dir;
+  cachedSnapshots = snapshots;
+  cachedSnapshotsAt = now;
+  return filterSnapshots(snapshots, providerId);
+}
+
+function filterSnapshots(
+  snapshots: OmpUsageSnapshot[] | null,
+  providerId?: string,
+): OmpUsageSnapshot[] | null {
+  if (!snapshots) return null;
+  if (!providerId) return snapshots;
+  return snapshots.filter((entry) => entry.provider === providerId);
 }

@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+- New providers: Antigravity (quota snapshots per pool via omp `usage_history`,
+  honestly labeled as snapshots) and Command Code (credit usage via
+  `api.commandcode.ai`, tolerant parser — live validation pending `cmd login`)
+- omp `usage_history` snapshot layer (`readOmpUsageSnapshots`, TTL-cached)
 - oh-my-pi (`omp`) harness logins as fallback credential source for Claude, Codex
   (as an `omp` account row with its own re-login guidance) and OpenCode Go —
   used only when no preference, env or native login exists; tokens never persisted

@@ -2,7 +2,7 @@
 
 # Limit Tracker
 
-> Track AI coding agent limits across **Claude, Codex, Copilot, Cursor, DeepSeek, Gemini, OpenCode Go, and z.ai** — directly from [Vicinae](https://vicinae.com).
+> Track AI coding agent limits across **Claude, Codex, Copilot, Cursor, DeepSeek, Gemini, OpenCode Go, z.ai, Antigravity and Command Code** — directly from [Vicinae](https://vicinae.com).
 
 Limit Tracker is a **native Vicinae extension** (built with `@vicinae/api`, TypeScript and React). It shows each provider's plan, 5-hour and weekly limits, a live countdown to reset, per-model Claude windows, and the Codex manual-reset credit bank — in a clean master-detail list.
 
@@ -72,6 +72,8 @@ On Linux/macOS the dev flow works directly.
 - **Gemini** — OAuth-backed quota API using Gemini CLI credentials.
 - **OpenCode Go** — Usage API for subscription tracking.
 - **z.ai** — API token for personal/team quota, 5-hour, and hourly usage windows.
+- **Antigravity** — Quota snapshots per model pool (Google/Anthropic/OpenAI), via omp.
+- **Command Code** — Credit usage (plan, percent used, renewal) via `~/.commandcode/auth.json`.
 - **oh-my-pi harness (fallback)** — `omp auth-broker login` credentials are reused automatically
   for Claude (`anthropic`), Codex (`openai-codex`) and OpenCode Go when no native login,
   preference or env credential exists. Tokens are used as-is and never written anywhere.
@@ -109,12 +111,15 @@ Open **Vicinae Settings → Limit Tracker** (or press <kbd>⌘</kbd>+<kbd>,</kbd
 | Show Gemini | checkbox | Show Gemini usage in the list |
 | Show OpenCode Go | checkbox | Show OpenCode Go subscription in the list |
 | Show z.ai | checkbox | Show z.ai (GLM) usage in the list |
+| Show Antigravity | checkbox | Show Antigravity quota snapshots (via omp) in the list |
+| Show Command Code | checkbox | Show Command Code credit usage in the list |
 | Additional Codex Homes | textfield | Comma-separated `CODEX_HOME` dirs beyond the default |
 | Copilot Authorization Token | password | Optional fallback OAuth token (auto-detected from `GH_TOKEN`/`GITHUB_TOKEN`) |
 | Cursor Cookie Header | password | Optional fallback Cookie header (auto-detected from Cursor login) |
 | DeepSeek API Key | password | Optional API key (auto-detected from OpenCode / `DEEPSEEK_API_KEY`) |
 | OpenCode Go API Key | password | Your OpenCode Go API key |
 | z.ai API Token | password | Optional token (auto-detected from `ZAI_API_KEY`/`GLM_API_KEY`) |
+| Command Code API Key | password | Optional key (auto-detected from `~/.commandcode/auth.json` or `COMMANDCODE_API_KEY`) |
 | Cache Duration (Seconds) | textfield | TTL for remote API requests (default `180`; `0` disables caching) |
 
 Providers without credentials configured show **Not Configured** — that's expected.
@@ -150,6 +155,8 @@ limit-tracker/
 │   │   └── usage-cache.ts      # Pure cache helpers (tested)
 │   ├── accounts/              # Multi-account storage (Codex, z.ai)
 │   ├── claude/  codex/  copilot/  cursor/  deepseek/  gemini/  opencode-go/  zai/  # core 8 (v1)
+│   ├── antigravity/  commandcode/  # v1.1 additions (omp snapshots, Command Code API)
+│   ├── omp/  # oh-my-pi harness credential + snapshot source (best-effort fallback)
 │   │   └── fetcher.ts renderer.tsx types.ts   # per-provider logic
 │   └── **/*.test.ts           # Node test-runner tests (colocated)
 └── README.md
