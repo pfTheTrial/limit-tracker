@@ -1,4 +1,5 @@
 node_modules/
+vicinae-env.d.ts
 *.log
 *.tmp
 .DS_Store

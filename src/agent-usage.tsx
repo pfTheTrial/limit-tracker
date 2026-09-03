@@ -551,7 +551,7 @@ export default function Command(props: LaunchProps<{ launchContext: CommandLaunc
           />
           <Action
             title="Open Extension Preferences"
-            icon={Icon.Gear}
+            icon={Icon.Cog}
             shortcut={{ modifiers: ["cmd"], key: "," }}
             onAction={() => openExtensionPreferences()}
           />

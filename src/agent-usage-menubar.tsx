@@ -292,16 +292,16 @@ export default function MenuBarCommand() {
         <MenuBarExtra.Item
           title={refreshTitle}
           icon={Icon.ArrowClockwise}
-          shortcut={Keyboard.Shortcut.Common.Copy}
+          shortcut={{ modifiers: ["cmd"], key: "c" }}
           onAction={handleRefresh}
         />
         <MenuBarExtra.Item
           title="Open Agent Usage"
-          icon={Icon.List}
+          icon={Icon.AppWindowList}
           shortcut={{ modifiers: ["cmd"], key: "o" }}
           onAction={() => open("vicinae://launch/limit-tracker/agent-usage")}
         />
-        <MenuBarExtra.Item title="Configure Command" icon={Icon.Gear} onAction={openCommandPreferences} />
+        <MenuBarExtra.Item title="Configure Command" icon={Icon.Cog} onAction={openCommandPreferences} />
       </MenuBarExtra.Section>
     </MenuBarExtra>
   );

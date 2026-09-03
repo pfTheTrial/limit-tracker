@@ -16,11 +16,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vicinae/api": "^0.8.5"
+    "@vicinae/api": "^0.28.1"
   },
   "devDependencies": {
     "@types/node": "22.20.1",
-    "@types/react": "18.3.12",
+    "@types/react": "^19.2.18",
     "typescript": "^5.9.3"
   },
   "icon": "limit-tracker-icon.svg",
@@ -50,6 +50,7 @@
       "name": "showClaude",
       "type": "checkbox",
       "label": "Show Claude",
+      "title": "Show Claude",
       "description": "Show Claude usage in the list",
       "default": true,
       "required": false
@@ -58,6 +59,7 @@
       "name": "showCodex",
       "type": "checkbox",
       "label": "Show Codex",
+      "title": "Show Codex",
       "description": "Show Codex usage in the list",
       "default": true,
       "required": false
@@ -74,6 +76,7 @@
       "name": "showCopilot",
       "type": "checkbox",
       "label": "Show Copilot",
+      "title": "Show Copilot",
       "description": "Show Copilot usage in the list",
       "default": true,
       "required": false
@@ -89,6 +92,7 @@
       "name": "showCursor",
       "type": "checkbox",
       "label": "Show Cursor",
+      "title": "Show Cursor",
       "description": "Show Cursor usage in the list",
       "default": true,
       "required": false
@@ -104,6 +108,7 @@
       "name": "showDeepSeek",
       "type": "checkbox",
       "label": "Show DeepSeek",
+      "title": "Show DeepSeek",
       "description": "Show DeepSeek balance in the list",
       "default": true,
       "required": false
@@ -119,6 +124,7 @@
       "name": "showGemini",
       "type": "checkbox",
       "label": "Show Gemini",
+      "title": "Show Gemini",
       "description": "Show Gemini usage in the list",
       "default": true,
       "required": false
@@ -127,6 +133,7 @@
       "name": "showOpencodeGo",
       "type": "checkbox",
       "label": "Show OpenCode Go",
+      "title": "Show OpenCode Go",
       "description": "Show OpenCode Go subscription usage in the list",
       "default": true,
       "required": false
@@ -142,6 +149,7 @@
       "name": "showZai",
       "type": "checkbox",
       "label": "Show z.ai (GLM)",
+      "title": "Show z.ai (GLM)",
       "description": "Show z.ai (GLM) usage in the list",
       "default": true,
       "required": false
