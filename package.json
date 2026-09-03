@@ -189,9 +189,18 @@
     {
       "name": "cacheTtl",
       "type": "textfield",
-      "title": "Cache Duration (Seconds)",
-      "description": "Cache duration in seconds for remote API requests. Set to 0 to disable caching.",
+      "title": "Refresh Interval (Seconds)",
+      "description": "How often usage data is refetched from provider APIs. Applies to the list and menu bar (menu bar itself wakes hourly). Set to 0 to disable caching.",
       "default": "180",
+      "required": false
+    },
+    {
+      "name": "useOmpHarness",
+      "type": "checkbox",
+      "label": "Use oh-my-pi harness",
+      "title": "Use oh-my-pi harness",
+      "description": "Reuse omp logins and quota snapshots as fallback sources (Claude, Codex, OpenCode Go, Antigravity)",
+      "default": true,
       "required": false
     }
   ]

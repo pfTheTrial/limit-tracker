@@ -154,6 +154,14 @@ describe("readOmpUsageSnapshots", () => {
     clearOmpStoreCache();
     assert.equal(await readOmpUsageSnapshots("google-antigravity", path.join(os.tmpdir(), "omp-missing-dir-xyz")), null);
   });
+
+  it("returns null immediately when disabled, without touching disk", async () => {
+    clearOmpStoreCache();
+    assert.equal(await readOmpStore(undefined, false), null);
+    assert.equal(await readOmpUsageSnapshots("google-antigravity", undefined, false), null);
+    assert.equal(await getOmpApiKey("opencode-go", undefined, false), null);
+    assert.equal(await getOmpOAuth("anthropic", undefined, false), null);
+  });
 });
 
 describe("readOmpStore", () => {

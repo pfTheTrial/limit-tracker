@@ -341,7 +341,7 @@ function extractCredentials(
   };
 }
 
-export async function readClaudeCredentials(): Promise<{ credentials: ClaudeCredentials | null; error: ClaudeError | null }> {
+export async function readClaudeCredentials(ompEnabled = true): Promise<{ credentials: ClaudeCredentials | null; error: ClaudeError | null }> {
   // Strategy 1: Try configured/default credential paths first
   for (const credentialsPath of resolveClaudeCredentialsPaths()) {
     if (!fs.existsSync(credentialsPath)) continue;
@@ -399,7 +399,7 @@ export async function readClaudeCredentials(): Promise<{ credentials: ClaudeCred
   // like native file credentials. Scope metadata is unavailable from omp, so
   // the scope gate in extractCredentials is bypassed here — the usage API call
   // itself is the authority (401 surfaces as unauthorized, not fabricated data).
-  const omp = await getOmpOAuth("anthropic");
+  const omp = ompEnabled ? await getOmpOAuth("anthropic") : null;
   if (omp?.access) {
     return {
       credentials: {

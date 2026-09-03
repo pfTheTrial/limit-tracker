@@ -24,13 +24,13 @@ export function mapSnapshotsToAntigravityUsage(rows: OmpUsageSnapshot[]): Antigr
  * `usage_history` records, so they are labeled as snapshots (see renderer)
  * and reset times are omitted when omp records none.
  */
-export async function fetchAntigravityUsage(agentDir?: string): Promise<{
+export async function fetchAntigravityUsage(agentDir?: string, enabled = true): Promise<{
   usage: AntigravityUsage | null;
   error: AntigravityError | null;
 }> {
   let rows: OmpUsageSnapshot[] | null;
   try {
-    rows = await readOmpUsageSnapshots(OMP_PROVIDER_ID, agentDir);
+    rows = await readOmpUsageSnapshots(OMP_PROVIDER_ID, agentDir, enabled);
   } catch {
     rows = null;
   }

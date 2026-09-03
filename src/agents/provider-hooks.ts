@@ -29,6 +29,7 @@ import { resolveZaiAuthTokens } from "../zai/auth.ts";
 import { fetchZaiUsage, ZAI_OPENCODE_KEY } from "../zai/fetcher.ts";
 import type { ZaiError, ZaiUsage } from "../zai/types.ts";
 import { createAccountsHook, createUsageHook } from "./hooks.ts";
+import type { AgentVisibilityPreferences } from "./types.ts";
 
 /**
  * Native Vicinae provider hooks for the core 8 providers.
@@ -53,11 +54,15 @@ function prefValue(key: keyof SharedPrefs): string {
   return getPreferenceValues<SharedPrefs>()[key]?.trim() || "";
 }
 
+function ompEnabled(): boolean {
+  return getPreferenceValues<AgentVisibilityPreferences>().useOmpHarness ?? true;
+}
+
 export const useClaudeUsage = createUsageHook<ClaudeUsage, ClaudeError>({
   agentId: "claude",
-  resolveAuthKey: async () => (await readClaudeCredentials()).credentials?.accessToken ?? "",
+  resolveAuthKey: async () => (await readClaudeCredentials(ompEnabled())).credentials?.accessToken ?? "",
   fetcher: async () => {
-    const { credentials, error } = await readClaudeCredentials();
+    const { credentials, error } = await readClaudeCredentials(ompEnabled());
     if (!credentials) return { usage: null, error };
     return fetchClaudeUsage(credentials);
   },
@@ -65,11 +70,13 @@ export const useClaudeUsage = createUsageHook<ClaudeUsage, ClaudeError>({
 
 export const useAntigravityUsage = createUsageHook<AntigravityUsage, AntigravityError>({
   agentId: "antigravity",
-  resolveAuthKey: async () =>
-    (await readOmpUsageSnapshots("google-antigravity"))
+  resolveAuthKey: async () => {
+    if (!ompEnabled()) return "";
+    return (await readOmpUsageSnapshots("google-antigravity"))
       ?.map((entry) => `${entry.limitId}:${entry.usedFraction}:${entry.status}`)
-      .join("|") ?? "",
-  fetcher: async () => fetchAntigravityUsage(),
+      .join("|") ?? "";
+  },
+  fetcher: async () => fetchAntigravityUsage(undefined, ompEnabled()),
 });
 
 export const useCommandcodeUsage = createUsageHook<CommandcodeUsage, CommandcodeError>({
@@ -169,7 +176,7 @@ export const useOpencodegoUsage = createUsageHook<OpencodegoUsage, OpencodegoErr
       return fetchOpencodegoUsageWithApiKey(envApiKey);
     }
     // oh-my-pi harness login (`omp auth-broker login opencode-go`) as fallback.
-    const ompApiKey = await getOmpApiKey("opencode-go");
+    const ompApiKey = await getOmpApiKey("opencode-go", undefined, ompEnabled());
     if (ompApiKey) {
       return fetchOpencodegoUsageWithApiKey(ompApiKey);
     }
@@ -204,8 +211,8 @@ export const useCodexAccounts = createAccountsHook<
     const nativeAccountIds = new Set(
       [...defaultAccounts, ...additionalAccounts].map((account) => account.accountId?.trim()).filter(Boolean),
     );
-    const ompAgentDir = findOmpAgentDir();
-    const omp = await getOmpOAuth("openai-codex");
+    const ompAgentDir = ompEnabled() ? findOmpAgentDir() : null;
+    const omp = ompAgentDir ? await getOmpOAuth("openai-codex") : null;
     const ompAccounts =
       ompAgentDir && omp && isOmpTokenFresh(omp) && omp.accountId && !nativeAccountIds.has(omp.accountId)
         ? [

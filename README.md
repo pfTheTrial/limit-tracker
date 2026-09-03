@@ -120,7 +120,8 @@ Open **Vicinae Settings → Limit Tracker** (or press <kbd>⌘</kbd>+<kbd>,</kbd
 | OpenCode Go API Key | password | Your OpenCode Go API key |
 | z.ai API Token | password | Optional token (auto-detected from `ZAI_API_KEY`/`GLM_API_KEY`) |
 | Command Code API Key | password | Optional key (auto-detected from `~/.commandcode/auth.json` or `COMMANDCODE_API_KEY`) |
-| Cache Duration (Seconds) | textfield | TTL for remote API requests (default `180`; `0` disables caching) |
+| Refresh Interval (Seconds) | textfield | How often usage data is refetched from provider APIs (default `180`; `0` disables caching) |
+| Use oh-my-pi harness | checkbox | Reuse `omp` logins and quota snapshots as fallback sources |
 
 Providers without credentials configured show **Not Configured** — that's expected.
 

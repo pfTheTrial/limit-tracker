@@ -194,10 +194,12 @@ async function openOmpSnapshot(agentDir: string): Promise<OmpSnapshot | null> {
 }
 
 /**
- * Read the omp credential store. Returns null when omp is absent, the host
- * cannot open SQLite, or anything goes wrong. Results are TTL-cached.
+ * Read the omp credential store. Returns null when disabled, when omp is
+ * absent, the host cannot open SQLite, or anything goes wrong.
+ * Results are TTL-cached.
  */
-export async function readOmpStore(agentDir?: string): Promise<OmpStore | null> {
+export async function readOmpStore(agentDir?: string, enabled = true): Promise<OmpStore | null> {
+  if (!enabled) return null;
   const dir = agentDir ?? findOmpAgentDir();
   if (!dir) return null;
 
@@ -237,14 +239,18 @@ export async function readOmpStore(agentDir?: string): Promise<OmpStore | null> 
 }
 
 /** API-key credential for an omp provider id (e.g. "opencode-go"). Pure lookup. */
-export async function getOmpApiKey(providerId: string, agentDir?: string): Promise<string | null> {
-  const store = await readOmpStore(agentDir);
+export async function getOmpApiKey(providerId: string, agentDir?: string, enabled = true): Promise<string | null> {
+  const store = await readOmpStore(agentDir, enabled);
   return store?.apiKeys.find((entry) => entry.provider === providerId)?.key ?? null;
 }
 
 /** OAuth credential for an omp provider id (e.g. "anthropic", "openai-codex"). */
-export async function getOmpOAuth(providerId: string, agentDir?: string): Promise<OmpOAuthCredential | null> {
-  const store = await readOmpStore(agentDir);
+export async function getOmpOAuth(
+  providerId: string,
+  agentDir?: string,
+  enabled = true,
+): Promise<OmpOAuthCredential | null> {
+  const store = await readOmpStore(agentDir, enabled);
   return store?.oauth.find((entry) => entry.provider === providerId) ?? null;
 }
 
@@ -308,7 +314,9 @@ export function parseOmpUsageSnapshotRow(row: OmpUsageSnapshotRow): OmpUsageSnap
 export async function readOmpUsageSnapshots(
   providerId?: string,
   agentDir?: string,
+  enabled = true,
 ): Promise<OmpUsageSnapshot[] | null> {
+  if (!enabled) return null;
   const dir = agentDir ?? findOmpAgentDir();
   if (!dir) return null;
 

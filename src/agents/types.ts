@@ -66,6 +66,7 @@ export interface AgentVisibilityPreferences {
   showOpencodeGo: boolean;
   showSynthetic: boolean;
   showZai: boolean;
+  useOmpHarness: boolean;
   pinnedProviders?: string;
   claudeLimitView?: LimitView;
   codexLimitView?: LimitView;
