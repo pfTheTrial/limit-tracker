@@ -41,10 +41,15 @@ function planDisplayName(planId: unknown): string | undefined {
 }
 
 function daysUntil(dateValue: unknown): number | null {
+  const time = parseDateMs(dateValue);
+  if (time === null) return null;
+  return Math.max(0, Math.ceil((time - Date.now()) / 86400000));
+}
+
+function parseDateMs(dateValue: unknown): number | null {
   if (typeof dateValue !== "string" && typeof dateValue !== "number") return null;
   const time = new Date(dateValue).getTime();
-  if (Number.isNaN(time)) return null;
-  return Math.max(0, Math.ceil((time - Date.now()) / 86400000));
+  return Number.isNaN(time) ? null : time;
 }
 
 /**
@@ -79,6 +84,9 @@ export function parseCommandcodeUsagePayload(data: unknown): CommandcodeUsage | 
   const daysRemaining =
     daysUntil(credits ? pick(credits, ["periodEnd", "period_end", "renewsAt", "renews_at"]) : null) ??
     daysUntil(pick(creditsWrap ?? {}, ["periodEnd", "period_end", "renewsAt", "renews_at"]));
+  const renewsAtMs = parseDateMs(
+    credits ? pick(credits, ["periodEnd", "period_end", "renewsAt", "renews_at"]) : null,
+  ) ?? parseDateMs(pick(creditsWrap ?? {}, ["periodEnd", "period_end", "renewsAt", "renews_at"]));
 
   if (plan === undefined && total === undefined && used === undefined) return null;
 
@@ -90,6 +98,7 @@ export function parseCommandcodeUsagePayload(data: unknown): CommandcodeUsage | 
     usage.percentUsed = Math.min(100, Math.max(0, (used / total) * 100));
   }
   if (daysRemaining !== null) usage.daysRemaining = daysRemaining;
+  if (renewsAtMs !== null) usage.renewsAtMs = renewsAtMs;
   return usage;
 }
 

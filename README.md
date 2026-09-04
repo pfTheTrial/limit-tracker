@@ -122,6 +122,7 @@ Open **Vicinae Settings → Limit Tracker** (or press <kbd>⌘</kbd>+<kbd>,</kbd
 | Command Code API Key | password | Optional key (auto-detected from `~/.commandcode/auth.json` or `COMMANDCODE_API_KEY`) |
 | Refresh Interval (Seconds) | textfield | How often usage data is refetched from provider APIs (default `180`; `0` disables caching) |
 | Use oh-my-pi harness | checkbox | Reuse `omp` logins and quota snapshots as fallback sources |
+| Show oh-my-pi | checkbox | Show limits of everything connected via `omp` in the list |
 
 Providers without credentials configured show **Not Configured** — that's expected.
 

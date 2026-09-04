@@ -6,6 +6,8 @@ export interface CommandcodeUsage {
   creditsUsed?: number;
   /** Days remaining in the billing period, when reported. */
   daysRemaining?: number | null;
+  /** Epoch milliseconds of renewal, when parseable (drives the live countdown). */
+  renewsAtMs?: number | null;
 }
 
 export interface CommandcodeError {

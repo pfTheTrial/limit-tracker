@@ -14,6 +14,7 @@ export function mapSnapshotsToAntigravityUsage(rows: OmpUsageSnapshot[]): Antigr
     windowLabel: row.windowLabel,
     percentRemaining: Math.round((1 - row.usedFraction) * 100),
     status: row.status,
+    resetsAtMs: row.resetsAtMs,
   }));
   return { pools, viaOmp: true };
 }

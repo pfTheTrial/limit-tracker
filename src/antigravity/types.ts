@@ -6,6 +6,8 @@ export interface AntigravityPool {
   percentRemaining: number;
   /** omp status passthrough: "ok" | "warning" | "exhausted" | ... */
   status: string;
+  /** Epoch milliseconds, when omp records one. Null = unknown, never rendered. */
+  resetsAtMs: number | null;
 }
 
 export interface AntigravityUsage {

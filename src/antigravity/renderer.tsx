@@ -1,10 +1,26 @@
 import { Icon, List } from "@vicinae/api";
+import React from "react";
 
 import type { Accessory } from "../agents/types.ts";
-import { formatErrorOrNoData, getLoadingAccessory, getNoDataAccessory, renderErrorOrNoData } from "../agents/ui.tsx";
+import { formatCountdown, LiveResetLabel } from "../agents/countdown.tsx";
+import { formatErrorOrNoData, generateAsciiBar, getLoadingAccessory, getNoDataAccessory, renderErrorOrNoData } from "../agents/ui.tsx";
 import type { AntigravityError, AntigravityPool, AntigravityUsage } from "./types.ts";
 
 const VIA_OMP_NOTE = "Snapshot via omp — may lag behind the live quota.";
+
+function poolTitle(pool: AntigravityPool): string {
+  return pool.windowLabel ? `${pool.label} (${pool.windowLabel})` : pool.label;
+}
+
+function poolBarText(pool: AntigravityPool): string {
+  return `${generateAsciiBar(pool.percentRemaining)} ${pool.percentRemaining}% remaining`;
+}
+
+function resetsInSeconds(pool: AntigravityPool): number | null {
+  if (pool.resetsAtMs === null) return null;
+  const seconds = Math.round((pool.resetsAtMs - Date.now()) / 1000);
+  return seconds > 0 ? seconds : null;
+}
 
 function worstPool(pools: AntigravityPool[]): AntigravityPool {
   return pools.reduce((worst, pool) => (pool.percentRemaining < worst.percentRemaining ? pool : worst));
@@ -15,11 +31,15 @@ export function formatAntigravityUsageText(usage: AntigravityUsage | null, error
   if (fallback !== null) return fallback;
   const u = usage as AntigravityUsage;
 
-  const lines = ["Antigravity Usage", VIA_OMP_NOTE];
+  let text = `Antigravity Usage\nSource: ${VIA_OMP_NOTE}`;
   for (const pool of u.pools) {
-    lines.push(`${pool.label} (${pool.windowLabel}): ${pool.percentRemaining}% remaining [${pool.status}]`);
+    text += `\n\n${poolTitle(pool)}: ${poolBarText(pool)} [${pool.status}]`;
+    const seconds = resetsInSeconds(pool);
+    if (seconds !== null) {
+      text += `\nResets In: ${formatCountdown(seconds)}`;
+    }
   }
-  return lines.join("\n");
+  return text;
 }
 
 export function renderAntigravityDetail(usage: AntigravityUsage | null, error: AntigravityError | null): React.ReactNode {
@@ -30,13 +50,12 @@ export function renderAntigravityDetail(usage: AntigravityUsage | null, error: A
   return (
     <List.Item.Detail.Metadata>
       <List.Item.Detail.Metadata.Label title="Source" text="Snapshot via omp" />
-      <List.Item.Detail.Metadata.Separator />
       {u.pools.map((pool) => (
-        <List.Item.Detail.Metadata.Label
-          key={pool.id}
-          title={`${pool.label} (${pool.windowLabel})`}
-          text={`${pool.percentRemaining}% remaining [${pool.status}]`}
-        />
+        <React.Fragment key={pool.id}>
+          <List.Item.Detail.Metadata.Separator />
+          <List.Item.Detail.Metadata.Label title={poolTitle(pool)} text={`${poolBarText(pool)} [${pool.status}]`} />
+          {resetsInSeconds(pool) !== null && <LiveResetLabel seconds={resetsInSeconds(pool)} />}
+        </React.Fragment>
       ))}
     </List.Item.Detail.Metadata>
   );
@@ -68,6 +87,6 @@ export function getAntigravityAccessory(
   }
   return {
     text: `${worst.percentRemaining}%`,
-    tooltip: usage.pools.map((pool) => `${pool.label}: ${pool.percentRemaining}% remaining`).join("\n") + `\n${VIA_OMP_NOTE}`,
+    tooltip: usage.pools.map((pool) => `${poolTitle(pool)}: ${pool.percentRemaining}% remaining`).join("\n") + `\n${VIA_OMP_NOTE}`,
   };
 }

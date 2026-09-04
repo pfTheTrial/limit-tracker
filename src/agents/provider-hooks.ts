@@ -25,6 +25,8 @@ import type { GeminiError, GeminiUsage } from "../gemini/types.ts";
 import { fetchOpencodegoUsage, fetchOpencodegoUsageWithApiKey } from "../opencode-go/fetcher.ts";
 import type { OpencodegoError, OpencodegoUsage } from "../opencode-go/types.ts";
 import { findOmpAgentDir, getOmpApiKey, getOmpOAuth, isOmpTokenFresh, readOmpUsageSnapshots } from "../omp/store.ts";
+import { fetchOmpSummaryUsage } from "../omp/summary.ts";
+import type { OmpSummaryError, OmpSummaryUsage } from "../omp/summary.ts";
 import { resolveZaiAuthTokens } from "../zai/auth.ts";
 import { fetchZaiUsage, ZAI_OPENCODE_KEY } from "../zai/fetcher.ts";
 import type { ZaiError, ZaiUsage } from "../zai/types.ts";
@@ -294,3 +296,14 @@ export const useZaiAccounts = createAccountsHook<
 async function resolveCopilotTokens() {
   return resolveCopilotAuthTokens({ preferenceToken: prefValue("copilotAuthToken") });
 }
+
+export const useOmpSummaryUsage = createUsageHook<OmpSummaryUsage, OmpSummaryError>({
+  agentId: "omp",
+  resolveAuthKey: async () => {
+    if (!ompEnabled()) return "";
+    return (await readOmpUsageSnapshots())
+      ?.map((entry) => `${entry.provider}:${entry.limitId}:${entry.usedFraction}:${entry.status}`)
+      .join("|") ?? "";
+  },
+  fetcher: async () => fetchOmpSummaryUsage(undefined, ompEnabled()),
+});

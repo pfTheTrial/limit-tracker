@@ -18,6 +18,7 @@ describe("parseCommandcodeUsagePayload", () => {
     assert.equal(usage?.creditsUsed, 2.5);
     assert.equal(usage?.percentUsed, 25);
     assert.ok((usage?.daysRemaining ?? 0) > 0);
+    assert.equal(usage?.renewsAtMs, Date.parse("2099-01-01T00:00:00Z"));
   });
 
   it("accepts snake_case variants", () => {
