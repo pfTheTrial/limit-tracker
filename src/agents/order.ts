@@ -17,7 +17,6 @@ export const DEFAULT_AGENT_ORDER = [
   "kimi",
   "minimax",
   "minimaxcn",
-  "omp",
   "opencode-go",
   "synthetic",
   "zai",

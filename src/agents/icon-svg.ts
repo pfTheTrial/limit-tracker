@@ -11,6 +11,7 @@ const PAINT_CSS_REPLACE_PATTERN = /((?:fill|stroke)\s*:\s*)([^;}"'\s]+)/gi;
 
 export const DARK_MODE_INVERTED_LIST_ICONS = [
   "codex-icon.svg",
+  "commandcode-icon.svg",
   "copilot-icon.svg",
   "cursor-icon.svg",
   "opencode-go-icon.svg",

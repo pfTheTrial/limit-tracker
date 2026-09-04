@@ -27,14 +27,11 @@ import {
   useCursorUsage,
   useDeepSeekUsage,
   useGeminiUsage,
-  useOmpSummaryUsage,
   useOpencodegoUsage,
   useZaiAccounts,
 } from "./agents/provider-hooks.ts";
 import type { Accessory, AgentDefinition, AgentVisibilityPreferences, LimitView, UsageState } from "./agents/types.ts";
 import { getListIcon } from "./agents/ui.tsx";
-import { formatOmpSummaryUsageText, getOmpSummaryAccessory, renderOmpSummaryDetail } from "./omp/summary-renderer.tsx";
-import type { OmpSummaryError, OmpSummaryUsage } from "./omp/summary.ts";
 import { formatAntigravityUsageText, getAntigravityAccessory, renderAntigravityDetail } from "./antigravity/renderer.tsx";
 import type { AntigravityError, AntigravityUsage } from "./antigravity/types.ts";
 import { formatClaudeUsageText, getClaudeAccessory, renderClaudeDetail } from "./claude/renderer.tsx";
@@ -69,9 +66,9 @@ interface AgentRegistryEntry<TUsage, TError extends ErrorLike> extends Omit<Agen
   formatUsageText: (usage: TUsage | null, error: TError | null) => string;
 }
 
-type CoreAgentId = "antigravity" | "claude" | "codex" | "commandcode" | "copilot" | "cursor" | "deepseek" | "gemini" | "omp" | "opencode-go" | "zai";
+type CoreAgentId = "antigravity" | "claude" | "codex" | "commandcode" | "copilot" | "cursor" | "deepseek" | "gemini" | "opencode-go" | "zai";
 
-const CORE_AGENT_ORDER: CoreAgentId[] = ["claude", "copilot", "cursor", "deepseek", "gemini", "opencode-go", "codex", "zai", "antigravity", "commandcode", "omp"];
+const CORE_AGENT_ORDER: CoreAgentId[] = ["claude", "copilot", "cursor", "deepseek", "gemini", "opencode-go", "codex", "zai", "antigravity", "commandcode"];
 
 type MultiAccountAgentId = "codex" | "zai";
 
@@ -85,7 +82,6 @@ interface AgentUsageById {
   deepseek: DeepSeekUsage;
   gemini: GeminiUsage;
   "opencode-go": OpencodegoUsage;
-  omp: OmpSummaryUsage;
   zai: ZaiUsage;
 }
 
@@ -99,7 +95,6 @@ interface AgentErrorById {
   deepseek: DeepSeekError;
   gemini: GeminiError;
   "opencode-go": OpencodegoError;
-  omp: OmpSummaryError;
   zai: ZaiError;
 }
 
@@ -239,8 +234,8 @@ const AGENT_REGISTRY: AgentRegistry = {
   antigravity: {
     id: "antigravity",
     name: "Antigravity",
-    icon: "antigravity-icon.svg",
-    description: "Google Antigravity quotas (via omp snapshots)",
+    icon: "antigravity-icon.png",
+    description: "Google Antigravity quotas (via omp)",
     isSupported: true,
     settingsUrl: "https://omp.sh/docs/providers",
     useUsage: useAntigravityUsage,
@@ -259,18 +254,6 @@ const AGENT_REGISTRY: AgentRegistry = {
     renderDetail: renderCommandcodeDetail,
     getAccessory: getCommandcodeAccessory,
     formatUsageText: formatCommandcodeUsageText,
-  },
-  omp: {
-    id: "omp",
-    name: "oh-my-pi",
-    icon: "omp-icon.svg",
-    description: "Limits of everything connected via omp",
-    isSupported: true,
-    settingsUrl: "https://omp.sh/docs/providers",
-    useUsage: useOmpSummaryUsage,
-    renderDetail: renderOmpSummaryDetail,
-    getAccessory: getOmpSummaryAccessory,
-    formatUsageText: formatOmpSummaryUsageText,
   },
 };
 
@@ -388,7 +371,6 @@ export default function Command(props: LaunchProps<{ launchContext: CommandLaunc
   const claudeState = AGENT_REGISTRY.claude.useUsage(Boolean(prefs.showClaude));
   const antigravityState = AGENT_REGISTRY.antigravity.useUsage(Boolean(prefs.showAntigravity));
   const commandcodeState = AGENT_REGISTRY.commandcode.useUsage(Boolean(prefs.showCommandcode));
-  const ompSummaryState = AGENT_REGISTRY.omp.useUsage(Boolean(prefs.showOmp));
   const copilotState = AGENT_REGISTRY.copilot.useUsage(Boolean(prefs.showCopilot));
   const cursorState = AGENT_REGISTRY.cursor.useUsage(Boolean(prefs.showCursor));
   const deepseekState = AGENT_REGISTRY.deepseek.useUsage(Boolean(prefs.showDeepSeek));
@@ -420,7 +402,6 @@ export default function Command(props: LaunchProps<{ launchContext: CommandLaunc
     ),
     antigravity: createAgentView(AGENT_REGISTRY.antigravity, antigravityState, Boolean(prefs.showAntigravity)),
     commandcode: createAgentView(AGENT_REGISTRY.commandcode, commandcodeState, Boolean(prefs.showCommandcode)),
-    omp: createAgentView(AGENT_REGISTRY.omp, ompSummaryState, Boolean(prefs.showOmp)),
   };
 
   const claudeLimitView = (prefs.claudeLimitView ?? "auto") as LimitView;

@@ -25,8 +25,6 @@ import type { GeminiError, GeminiUsage } from "../gemini/types.ts";
 import { fetchOpencodegoUsage, fetchOpencodegoUsageWithApiKey } from "../opencode-go/fetcher.ts";
 import type { OpencodegoError, OpencodegoUsage } from "../opencode-go/types.ts";
 import { findOmpAgentDir, getOmpApiKey, getOmpOAuth, isOmpTokenFresh, readOmpUsageSnapshots } from "../omp/store.ts";
-import { fetchOmpSummaryUsage } from "../omp/summary.ts";
-import type { OmpSummaryError, OmpSummaryUsage } from "../omp/summary.ts";
 import { resolveZaiAuthTokens } from "../zai/auth.ts";
 import { fetchZaiUsage, ZAI_OPENCODE_KEY } from "../zai/fetcher.ts";
 import type { ZaiError, ZaiUsage } from "../zai/types.ts";
@@ -66,7 +64,11 @@ export const useClaudeUsage = createUsageHook<ClaudeUsage, ClaudeError>({
   fetcher: async () => {
     const { credentials, error } = await readClaudeCredentials(ompEnabled());
     if (!credentials) return { usage: null, error };
-    return fetchClaudeUsage(credentials);
+    const result = await fetchClaudeUsage(credentials);
+    if (result.usage && credentials.source === "omp") {
+      return { usage: { ...result.usage, viaOmp: true }, error: result.error };
+    }
+    return result;
   },
 });
 
@@ -180,7 +182,11 @@ export const useOpencodegoUsage = createUsageHook<OpencodegoUsage, OpencodegoErr
     // oh-my-pi harness login (`omp auth-broker login opencode-go`) as fallback.
     const ompApiKey = await getOmpApiKey("opencode-go", undefined, ompEnabled());
     if (ompApiKey) {
-      return fetchOpencodegoUsageWithApiKey(ompApiKey);
+      const result = await fetchOpencodegoUsageWithApiKey(ompApiKey);
+      if (result.usage) {
+        return { usage: { ...result.usage, viaOmp: true }, error: result.error };
+      }
+      return result;
     }
     return {
       usage: null,
@@ -245,14 +251,19 @@ export const useCodexAccounts = createAccountsHook<
       };
     }
     const result = await fetchCodexUsage(account.token, account.accountId);
-    if (account.id === "codex-omp" && result.error?.type === "unauthorized") {
-      return {
-        usage: null,
-        error: {
-          type: "unauthorized" as const,
-          message: "omp Codex token expired or invalid. Re-login with `omp auth-broker login openai-codex`.",
-        },
-      };
+    if (account.id === "codex-omp") {
+      if (result.error?.type === "unauthorized") {
+        return {
+          usage: null,
+          error: {
+            type: "unauthorized" as const,
+            message: "omp Codex token expired or invalid. Re-login with `omp auth-broker login openai-codex`.",
+          },
+        };
+      }
+      if (result.usage) {
+        return { usage: { ...result.usage, viaOmp: true }, error: result.error };
+      }
     }
     return result;
   },
@@ -296,14 +307,3 @@ export const useZaiAccounts = createAccountsHook<
 async function resolveCopilotTokens() {
   return resolveCopilotAuthTokens({ preferenceToken: prefValue("copilotAuthToken") });
 }
-
-export const useOmpSummaryUsage = createUsageHook<OmpSummaryUsage, OmpSummaryError>({
-  agentId: "omp",
-  resolveAuthKey: async () => {
-    if (!ompEnabled()) return "";
-    return (await readOmpUsageSnapshots())
-      ?.map((entry) => `${entry.provider}:${entry.limitId}:${entry.usedFraction}:${entry.status}`)
-      .join("|") ?? "";
-  },
-  fetcher: async () => fetchOmpSummaryUsage(undefined, ompEnabled()),
-});

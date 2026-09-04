@@ -21,6 +21,9 @@ export function formatCodexUsageText(usage: CodexUsage | null, error: CodexError
   const u = usage as CodexUsage;
 
   let text = `Codex Usage\nAccount: ${u.account}`;
+  if (u.viaOmp) {
+    text += `\nSource: via omp`;
+  }
   if (u.fiveHourLimit) {
     text += `\n\n5h Limit: ${u.fiveHourLimit.percentageRemaining}% remaining`;
     text += `\n${generateAsciiBar(u.fiveHourLimit.percentageRemaining)}`;
@@ -71,6 +74,9 @@ export function renderCodexDetail(usage: CodexUsage | null, error: CodexError | 
   return (
     <List.Item.Detail.Metadata>
       <List.Item.Detail.Metadata.Label title="Account" text={u.account} />
+      {u.viaOmp && (
+        <List.Item.Detail.Metadata.Label title="Source" text="via omp" />
+      )}
       <List.Item.Detail.Metadata.Separator />
 
       {u.fiveHourLimit && (
@@ -238,10 +244,12 @@ export function getCodexAccessory(usage: CodexUsage | null, error: CodexError | 
     parts.push(`${additionalLimit.name}: ${remaining}%`);
   }
 
+  const tooltip = parts.join(" | ") || "Codex";
+
   return {
     icon: generatePieIcon(remaining),
     text: `${remaining}%`,
-    tooltip: parts.join(" | ") || "Codex",
+    tooltip: usage?.viaOmp ? `${tooltip}\nvia omp` : tooltip,
   };
 }
 

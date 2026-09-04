@@ -21,7 +21,6 @@ import {
   useCursorUsage,
   useDeepSeekUsage,
   useGeminiUsage,
-  useOmpSummaryUsage,
   useOpencodegoUsage,
   useZaiAccounts,
 } from "./agents/provider-hooks.ts";
@@ -36,7 +35,6 @@ import { getCursorAccessory } from "./cursor/renderer.tsx";
 import { getDeepSeekAccessory } from "./deepseek/renderer.tsx";
 import { getGeminiAccessory } from "./gemini/renderer.tsx";
 import { getOpencodegoAccessory } from "./opencode-go/renderer.tsx";
-import { getOmpSummaryAccessory } from "./omp/summary-renderer.tsx";
 import { getZaiAccessory } from "./zai/renderer.tsx";
 
 interface MenuBarAgent {
@@ -79,7 +77,6 @@ function parsePinnedProviders(pinned?: string): AgentId[] {
         "zai",
         "antigravity",
         "commandcode",
-        "omp",
       ];
       return valid.includes(id as AgentId);
     })
@@ -93,7 +90,6 @@ export default function MenuBarCommand() {
   const isClaudeVisible = Boolean(prefs.showClaude);
   const isAntigravityVisible = Boolean(prefs.showAntigravity);
   const isCommandcodeVisible = Boolean(prefs.showCommandcode);
-  const isOmpVisible = Boolean(prefs.showOmp);
   const isCodexVisible = Boolean(prefs.showCodex);
   const isCopilotVisible = Boolean(prefs.showCopilot);
   const isCursorVisible = Boolean(prefs.showCursor);
@@ -105,7 +101,6 @@ export default function MenuBarCommand() {
   const claudeState = useClaudeUsage(isClaudeVisible);
   const antigravityState = useAntigravityUsage(isAntigravityVisible);
   const commandcodeState = useCommandcodeUsage(isCommandcodeVisible);
-  const ompSummaryState = useOmpSummaryUsage(isOmpVisible);
   const codexState = useCodexAccounts(isCodexVisible);
   const copilotState = useCopilotUsage(isCopilotVisible);
   const cursorState = useCursorUsage(isCursorVisible);
@@ -179,7 +174,7 @@ export default function MenuBarCommand() {
       {
         id: "antigravity",
         name: "Antigravity",
-        icon: getThemeIcon("antigravity-icon.svg"),
+        icon: getThemeIcon("antigravity-icon.png"),
         visible: isAntigravityVisible,
         isLoading: antigravityState.isLoading,
         accessory: getAntigravityAccessory(antigravityState.usage, antigravityState.error, antigravityState.isLoading),
@@ -196,22 +191,11 @@ export default function MenuBarCommand() {
         revalidate: commandcodeState.revalidate,
         lastFetchedAt: commandcodeState.lastFetchedAt,
       },
-      {
-        id: "omp",
-        name: "oh-my-pi",
-        icon: getThemeIcon("omp-icon.svg"),
-        visible: isOmpVisible,
-        isLoading: ompSummaryState.isLoading,
-        accessory: getOmpSummaryAccessory(ompSummaryState.usage, ompSummaryState.error, ompSummaryState.isLoading),
-        revalidate: ompSummaryState.revalidate,
-        lastFetchedAt: ompSummaryState.lastFetchedAt,
-      },
     ],
     [
       isClaudeVisible,
       isAntigravityVisible,
       isCommandcodeVisible,
-      isOmpVisible,
       isCopilotVisible,
       isCursorVisible,
       isDeepSeekVisible,
@@ -252,11 +236,6 @@ export default function MenuBarCommand() {
       commandcodeState.error,
       commandcodeState.revalidate,
       commandcodeState.lastFetchedAt,
-      ompSummaryState.isLoading,
-      ompSummaryState.usage,
-      ompSummaryState.error,
-      ompSummaryState.revalidate,
-      ompSummaryState.lastFetchedAt,
     ],
   );
 

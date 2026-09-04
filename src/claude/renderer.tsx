@@ -31,6 +31,9 @@ export function formatClaudeUsageText(usage: ClaudeUsage | null, error: ClaudeEr
   const u = usage as ClaudeUsage;
 
   let text = `Claude Usage\nPlan: ${u.plan}`;
+  if (u.viaOmp) {
+    text += `\nSource: via omp`;
+  }
   text += formatWindow("5h Limit", u.fiveHour.percentageRemaining, u.fiveHour.resetsIn);
 
   if (u.sevenDay) {
@@ -56,6 +59,9 @@ export function renderClaudeDetail(usage: ClaudeUsage | null, error: ClaudeError
   return (
     <List.Item.Detail.Metadata>
       <List.Item.Detail.Metadata.Label title="Plan" text={u.plan} />
+      {u.viaOmp && (
+        <List.Item.Detail.Metadata.Label title="Source" text="via omp" />
+      )}
       <List.Item.Detail.Metadata.Separator />
 
       <List.Item.Detail.Metadata.Label
@@ -196,9 +202,11 @@ export function getClaudeAccessory(
     );
   }
 
+  const tooltip = tooltipParts.join("\n") || "Claude";
+
   return {
     icon: generatePieIcon(resolved.percent),
     text: `${resolved.percent}%`,
-    tooltip: tooltipParts.join("\n") || "Claude",
+    tooltip: usage?.viaOmp ? `${tooltip}\nvia omp` : tooltip,
   };
 }

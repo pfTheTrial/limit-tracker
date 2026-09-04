@@ -12,8 +12,9 @@
   `api.commandcode.ai`, tolerant parser — live validation pending `cmd login`)
 - omp `usage_history` snapshot layer (`readOmpUsageSnapshots`, TTL-cached)
 - oh-my-pi (`omp`) harness logins as fallback credential source for Claude, Codex
-  (as an `omp` account row with its own re-login guidance) and OpenCode Go —
-  used only when no preference, env or native login exists; tokens never persisted
+  and OpenCode Go — used only when no preference, env or native login exists;
+  omp-sourced values are labeled `via omp` in the provider's own row (no separate
+  omp row); tokens never persisted
 - Remove dead `src/utils/` (credential-resolver, error-handler — unreferenced)
 
 ## [Add AIHubMix Usage] - 2026-08-22

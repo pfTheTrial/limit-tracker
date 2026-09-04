@@ -48,6 +48,9 @@ export function formatOpencodegoUsageText(usage: OpencodegoUsage | null, error: 
   const u = usage as OpencodegoUsage;
 
   let text = `OpenCode Go Usage\nPlan: ${u.planName}`;
+  if (u.viaOmp) {
+    text += `\nSource: via omp`;
+  }
 
   const primaryRemaining = u.primary.limit - u.primary.used;
   const primaryPercent = Math.round(getRemainingPercent(primaryRemaining, u.primary.limit));
@@ -84,6 +87,7 @@ export function renderOpencodegoDetail(usage: OpencodegoUsage | null, error: Ope
   const elements: React.ReactNode[] = [];
 
   elements.push(<List.Item.Detail.Metadata.Label key="plan" title="Plan" text={u.planName.replace(/ \(debug.*\)$/, "")} />);
+  if (u.viaOmp) elements.push(<List.Item.Detail.Metadata.Label key="source" title="Source" text="via omp" />);
   elements.push(<List.Item.Detail.Metadata.Separator />);
 
   const primaryRemaining = Number.isFinite(u.primary.used) && Number.isFinite(u.primary.limit) ? u.primary.limit - u.primary.used : 0;
@@ -153,6 +157,8 @@ export function getOpencodegoAccessory(
   return {
     icon: generatePieIcon(percent),
     text: `${percent}%`,
-    tooltip: tooltipParts.length > 0 ? [primaryTooltip, ...tooltipParts].join(" | ") : primaryTooltip,
+    tooltip: usage?.viaOmp
+      ? `${tooltipParts.length > 0 ? [primaryTooltip, ...tooltipParts].join(" | ") : primaryTooltip}\nvia omp`
+      : tooltipParts.length > 0 ? [primaryTooltip, ...tooltipParts].join(" | ") : primaryTooltip,
   };
 }

@@ -75,8 +75,9 @@ On Linux/macOS the dev flow works directly.
 - **Antigravity** — Quota snapshots per model pool (Google/Anthropic/OpenAI), via omp.
 - **Command Code** — Credit usage (plan, percent used, renewal) via `~/.commandcode/auth.json`.
 - **oh-my-pi harness (fallback)** — `omp auth-broker login` credentials are reused automatically
-  for Claude (`anthropic`), Codex (`openai-codex`) and OpenCode Go when no native login,
-  preference or env credential exists. Tokens are used as-is and never written anywhere.
+  when the native login is missing (Claude, Codex, OpenCode Go, Antigravity);
+  omp-sourced values are labeled `via omp` in the provider's own row, never as
+  their own row. Tokens are used as-is and never written anywhere.
 
 > **Phase 2** (fora da v1): `aihubmix`, `amp`, `antigravity`, `clinepass`, `droid`, `grok`, `kimi`, `minimax`, `minimaxcn`, `synthetic` — fora do registry até a v1 estabilizar.
 
@@ -121,8 +122,7 @@ Open **Vicinae Settings → Limit Tracker** (or press <kbd>⌘</kbd>+<kbd>,</kbd
 | z.ai API Token | password | Optional token (auto-detected from `ZAI_API_KEY`/`GLM_API_KEY`) |
 | Command Code API Key | password | Optional key (auto-detected from `~/.commandcode/auth.json` or `COMMANDCODE_API_KEY`) |
 | Refresh Interval (Seconds) | textfield | How often usage data is refetched from provider APIs (default `180`; `0` disables caching) |
-| Use oh-my-pi harness | checkbox | Reuse `omp` logins and quota snapshots as fallback sources |
-| Show oh-my-pi | checkbox | Show limits of everything connected via `omp` in the list |
+| Use oh-my-pi harness | checkbox | Reuse `omp` logins and quota snapshots as fallback sources (labeled `via omp`) |
 
 Providers without credentials configured show **Not Configured** — that's expected.
 

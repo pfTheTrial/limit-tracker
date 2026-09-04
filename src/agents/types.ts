@@ -19,7 +19,6 @@ export type AgentId =
   | "zai"
   | "minimax"
   | "minimaxcn"
-  | "omp"
   | "opencode-go";
 
 export interface AgentDefinition {
@@ -65,7 +64,6 @@ export interface AgentVisibilityPreferences {
   showMinimax: boolean;
   showMinimaxCN: boolean;
   showOpencodeGo: boolean;
-  showOmp: boolean;
   showSynthetic: boolean;
   showZai: boolean;
   useOmpHarness: boolean;

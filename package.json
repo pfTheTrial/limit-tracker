@@ -202,15 +202,6 @@
       "description": "Reuse omp logins and quota snapshots as fallback sources (Claude, Codex, OpenCode Go, Antigravity)",
       "default": true,
       "required": false
-    },
-    {
-      "name": "showOmp",
-      "type": "checkbox",
-      "label": "Show oh-my-pi",
-      "title": "Show oh-my-pi",
-      "description": "Show limits of everything connected via omp in the list",
-      "default": true,
-      "required": false
     }
   ]
 }

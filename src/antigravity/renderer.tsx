@@ -6,7 +6,7 @@ import { formatCountdown, LiveResetLabel } from "../agents/countdown.tsx";
 import { formatErrorOrNoData, generateAsciiBar, getLoadingAccessory, getNoDataAccessory, renderErrorOrNoData } from "../agents/ui.tsx";
 import type { AntigravityError, AntigravityPool, AntigravityUsage } from "./types.ts";
 
-const VIA_OMP_NOTE = "Snapshot via omp — may lag behind the live quota.";
+const VIA_OMP_NOTE = "Values via omp — may lag behind the live quota.";
 
 function poolTitle(pool: AntigravityPool): string {
   return pool.windowLabel ? `${pool.label} (${pool.windowLabel})` : pool.label;
@@ -49,7 +49,7 @@ export function renderAntigravityDetail(usage: AntigravityUsage | null, error: A
 
   return (
     <List.Item.Detail.Metadata>
-      <List.Item.Detail.Metadata.Label title="Source" text="Snapshot via omp" />
+      <List.Item.Detail.Metadata.Label title="Source" text="via omp" />
       {u.pools.map((pool) => (
         <React.Fragment key={pool.id}>
           <List.Item.Detail.Metadata.Separator />
