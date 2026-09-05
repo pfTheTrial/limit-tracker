@@ -46,6 +46,9 @@ npm run build
 
 Then open Vicinae and search for **"Usage"**.
 
+On Windows, still in alpha, `vici` writes the bundle to `%APPDATA%\vicinae\extensions`
+while the app loads from `%LOCALAPPDATA%\vicinae\data\extensions` — move it across after building.
+
 ### Development
 ```bash
 npm run dev            # vici develop (watch mode)

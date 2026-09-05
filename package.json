@@ -43,7 +43,8 @@
   ],
   "platforms": [
     "Linux",
-    "macOS"
+    "macOS",
+    "Windows"
   ],
   "preferences": [
     {
