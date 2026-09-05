@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -191,7 +191,7 @@ function tryParseCredentialJSON(text: string): CredentialsParsed | null {
 function readKeychainPassword(service: string): string | null {
   if (process.platform !== "darwin") return null;
   try {
-    const result = execSync(`security find-generic-password -s ${JSON.stringify(service)} -w`, {
+    const result = execFileSync("security", ["find-generic-password", "-s", service, "-w"], {
       encoding: "utf-8",
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
@@ -205,12 +205,14 @@ function readKeychainPassword(service: string): string | null {
 function readKeychainAccount(service: string): string | null {
   if (process.platform !== "darwin") return null;
   try {
-    const result = execSync(`security find-generic-password -s ${JSON.stringify(service)} -g 2>&1`, {
+    // `-g` prints the attribute dump on stderr, so both streams are inspected.
+    const result = spawnSync("security", ["find-generic-password", "-s", service, "-g"], {
       encoding: "utf-8",
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
     });
-    const match = result.match(/"acct"<blob>="([^"\n]*)"/);
+    if (result.error) return null;
+    const match = `${result.stdout ?? ""}${result.stderr ?? ""}`.match(/"acct"<blob>="([^"\n]*)"/);
     return match ? match[1] : null;
   } catch {
     return null;
@@ -220,13 +222,13 @@ function readKeychainAccount(service: string): string | null {
 function writeKeychainPassword(service: string, account: string, value: string): void {
   if (process.platform !== "darwin") return;
   try {
-    execSync(
-      `security add-generic-password -U -a ${JSON.stringify(account)} -s ${JSON.stringify(service)} -w ${JSON.stringify(value)}`,
-      {
-        timeout: 5000,
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
+    // `security` has no stdin input mode for add-generic-password, so the secret
+    // has to travel on argv. Arguments are passed as an array, never through a
+    // shell, so the value cannot alter the command that runs.
+    execFileSync("security", ["add-generic-password", "-U", "-a", account, "-s", service, "-w", value], {
+      timeout: 5000,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
   } catch {
     // Best effort
   }
@@ -236,7 +238,7 @@ function writeKeychainPassword(service: string, account: string, value: string):
 function readWindowsCredential(target: string): string | null {
   if (process.platform !== "win32") return null;
   try {
-    const result = execSync(`cmdkey /generic:${target} /retrieve`, {
+    const result = execFileSync("cmdkey", [`/generic:${target}`, "/retrieve"], {
       encoding: "utf-8",
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
@@ -251,7 +253,9 @@ function readWindowsCredential(target: string): string | null {
 function writeWindowsCredential(target: string, value: string): void {
   if (process.platform !== "win32") return;
   try {
-    execSync(`cmdkey /generic:${target} /user:claude /pass:${value}`, {
+    // Same argv caveat as the macOS keychain path: `cmdkey` takes the secret as
+    // an argument only. Passing an array keeps it out of any shell parsing.
+    execFileSync("cmdkey", [`/generic:${target}`, "/user:claude", `/pass:${value}`], {
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -264,7 +268,7 @@ function writeWindowsCredential(target: string, value: string): void {
 function readLinuxSecret(service: string): string | null {
   if (process.platform !== "linux") return null;
   try {
-    const result = execSync(`secret-tool lookup service ${service} application claude-code`, {
+    const result = execFileSync("secret-tool", ["lookup", "service", service, "application", "claude-code"], {
       encoding: "utf-8",
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
@@ -278,11 +282,10 @@ function readLinuxSecret(service: string): string | null {
 function writeLinuxSecret(service: string, value: string): void {
   if (process.platform !== "linux") return;
   try {
-    const input = value;
-    execSync(`secret-tool store --label="Claude Code" service ${service} application claude-code`, {
+    execFileSync("secret-tool", ["store", "--label=Claude Code", "service", service, "application", "claude-code"], {
       encoding: "utf-8",
       timeout: 5000,
-      input,
+      input: value,
       stdio: ["pipe", "pipe", "pipe"],
     });
   } catch {

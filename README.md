@@ -29,8 +29,7 @@ Limit Tracker is a **native Vicinae extension** (built with `@vicinae/api`, Type
 ### Requirements
 - [Vicinae](https://vicinae.com) installed (v0.27.1+).
 - [Node.js](https://nodejs.org) (the app embeds its own Node runtime; the CLI uses your system Node).
-- The `vici` CLI (ships with `@vicinae/api`). Make sure `vicinae.exe` is on your `PATH`
-  (default: `C:\Users\<you>\AppData\Local\Programs\Vicinae\bin`).
+- The `vici` CLI, which ships with `@vicinae/api`.
 
 ### Build & install
 ```bash
@@ -41,24 +40,16 @@ npm install
 npm run typecheck      # tsc --noEmit
 npm test               # node --test --experimental-strip-types
 
-# 3. build the extension
-npm run build          # -> outputs to Roaming\vicinae\extensions\limit-tracker
-
-# 4. (Windows) copy the bundle where the app actually loads it
-#    and remove the Roaming copy so it isn't listed twice
-rm -rf "$LOCALAPPDATA/vicinae/data/extensions/limit-tracker"
-cp -r  "$APPDATA/vicinae/extensions/limit-tracker" "$LOCALAPPDATA/vicinae/data/extensions/limit-tracker"
-rm -rf "$APPDATA/vicinae/extensions/limit-tracker"
+# 3. build and install the extension
+npm run build
 ```
 
-Then open Vicinae (Alt+Space) and search for **"Usage"**.
+Then open Vicinae and search for **"Usage"**.
 
 ### Development
 ```bash
 npm run dev            # vici develop (watch mode)
 ```
-On Windows, `vici develop` writes to `Roaming` — copy to `Local\data` as in step 4 above.
-On Linux/macOS the dev flow works directly.
 
 ---
 
@@ -79,7 +70,8 @@ On Linux/macOS the dev flow works directly.
   omp-sourced values are labeled `via omp` in the provider's own row, never as
   their own row. Tokens are used as-is and never written anywhere.
 
-> **Phase 2** (fora da v1): `aihubmix`, `amp`, `antigravity`, `clinepass`, `droid`, `grok`, `kimi`, `minimax`, `minimaxcn`, `synthetic` — fora do registry até a v1 estabilizar.
+> **Phase 2** (not in v1): `aihubmix`, `amp`, `clinepass`, `droid`, `grok`, `kimi`, `minimax`,
+> `minimaxcn`, `synthetic` — kept out of the registry until v1 stabilizes.
 
 ---
 
@@ -100,7 +92,7 @@ On Linux/macOS the dev flow works directly.
 
 ## Preferences
 
-Open **Vicinae Settings → Limit Tracker** (or press <kbd>⌘</kbd>+<kbd>,</kbd> inside the command):
+Open **Vicinae Settings → Limit Tracker** (or press <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>,</kbd> inside the command):
 
 | Preference | Type | Description |
 | --- | --- | --- |
@@ -133,8 +125,8 @@ Providers without credentials configured show **Not Configured** — that's expe
 | Shortcut | Action |
 | --- | --- |
 | <kbd>Enter</kbd> | Refresh all visible providers |
-| <kbd>⌘</kbd>+<kbd>R</kbd> | Refresh all visible providers |
-| <kbd>⌘</kbd>+<kbd>,</kbd> | Open extension preferences |
+| <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>R</kbd> | Refresh all visible providers |
+| <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>,</kbd> | Open extension preferences |
 
 ---
 
