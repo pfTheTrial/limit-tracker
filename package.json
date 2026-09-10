@@ -2,7 +2,7 @@
   "name": "limit-tracker",
   "version": "1.0.0",
   "title": "Limit Tracker",
-  "description": "Track and monitor AI coding agent limits and usage across Claude, Copilot, Cursor, DeepSeek, Gemini, Codex, OpenCode Go, z.ai, Antigravity and Command Code",
+  "description": "Track and monitor AI coding agent limits and usage across Claude, Copilot, Cursor, DeepSeek, Devin, Gemini, Codex, OpenCode Go, z.ai, Antigravity and Command Code",
   "categories": [
     "Productivity"
   ],
@@ -146,6 +146,22 @@
       "type": "password",
       "title": "DeepSeek API Key (Optional)",
       "description": "Auto-detected from OpenCode login (deepseek) or DEEPSEEK_API_KEY/DEEPSEEK_KEY. Fallback: paste an API key from https://platform.deepseek.com/api_keys.",
+      "required": false
+    },
+    {
+      "name": "showDevin",
+      "type": "checkbox",
+      "label": "Show Devin",
+      "title": "Show Devin",
+      "description": "Show Devin ACU limits in the list (Enterprise plan only)",
+      "default": true,
+      "required": false
+    },
+    {
+      "name": "devinApiKey",
+      "type": "password",
+      "title": "Devin API Key (Optional)",
+      "description": "Service user key (cog_...) with ViewAccountConsumption + ManageBilling permissions. Requires the Enterprise plan. Or set DEVIN_API_KEY.",
       "required": false
     },
     {

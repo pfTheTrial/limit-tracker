@@ -10,6 +10,7 @@ export type AgentId =
   | "copilot"
   | "cursor"
   | "deepseek"
+  | "devin"
   | "droid"
   | "gemini"
   | "grok"
@@ -57,6 +58,7 @@ export interface AgentVisibilityPreferences {
   showCopilot: boolean;
   showCursor: boolean;
   showDeepSeek: boolean;
+  showDevin: boolean;
   showDroid: boolean;
   showGemini: boolean;
   showGrok: boolean;

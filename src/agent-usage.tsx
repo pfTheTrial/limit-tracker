@@ -27,6 +27,7 @@ import {
   useCopilotUsage,
   useCursorUsage,
   useDeepSeekUsage,
+  useDevinUsage,
   useGeminiUsage,
   useOpencodegoUsage,
   useZaiAccounts,
@@ -47,6 +48,8 @@ import { formatCursorUsageText, getCursorAccessory, renderCursorDetail } from ".
 import type { CursorError, CursorUsage } from "./cursor/types.ts";
 import { formatDeepSeekUsageText, getDeepSeekAccessory, renderDeepSeekDetail } from "./deepseek/renderer.tsx";
 import type { DeepSeekError, DeepSeekUsage } from "./deepseek/types.ts";
+import { formatDevinUsageText, getDevinAccessory, renderDevinDetail } from "./devin/renderer.tsx";
+import type { DevinError, DevinUsage } from "./devin/types.ts";
 import { formatGeminiUsageText, getGeminiAccessory, renderGeminiDetail } from "./gemini/renderer.tsx";
 import type { GeminiError, GeminiUsage } from "./gemini/types.ts";
 import { formatOpencodegoUsageText, getOpencodegoAccessory, renderOpencodegoDetail } from "./opencode-go/renderer.tsx";
@@ -67,9 +70,9 @@ interface AgentRegistryEntry<TUsage, TError extends ErrorLike> extends Omit<Agen
   formatUsageText: (usage: TUsage | null, error: TError | null) => string;
 }
 
-type CoreAgentId = "antigravity" | "claude" | "codex" | "commandcode" | "copilot" | "cursor" | "deepseek" | "gemini" | "opencode-go" | "zai";
+type CoreAgentId = "antigravity" | "claude" | "codex" | "commandcode" | "copilot" | "cursor" | "deepseek" | "devin" | "gemini" | "opencode-go" | "zai";
 
-const CORE_AGENT_ORDER: CoreAgentId[] = ["claude", "copilot", "cursor", "deepseek", "gemini", "opencode-go", "codex", "zai", "antigravity", "commandcode"];
+const CORE_AGENT_ORDER: CoreAgentId[] = ["claude", "copilot", "cursor", "deepseek", "devin", "gemini", "opencode-go", "codex", "zai", "antigravity", "commandcode"];
 
 type MultiAccountAgentId = "codex" | "zai";
 
@@ -81,6 +84,7 @@ interface AgentUsageById {
   copilot: CopilotUsage;
   cursor: CursorUsage;
   deepseek: DeepSeekUsage;
+  devin: DevinUsage;
   gemini: GeminiUsage;
   "opencode-go": OpencodegoUsage;
   zai: ZaiUsage;
@@ -94,6 +98,7 @@ interface AgentErrorById {
   copilot: CopilotError;
   cursor: CursorError;
   deepseek: DeepSeekError;
+  devin: DevinError;
   gemini: GeminiError;
   "opencode-go": OpencodegoError;
   zai: ZaiError;
@@ -197,6 +202,18 @@ const AGENT_REGISTRY: AgentRegistry = {
     renderDetail: renderDeepSeekDetail,
     getAccessory: getDeepSeekAccessory,
     formatUsageText: formatDeepSeekUsageText,
+  },
+  devin: {
+    id: "devin",
+    name: "Devin",
+    icon: "devin-icon.svg",
+    description: "Devin ACU limits (Enterprise)",
+    isSupported: true,
+    settingsUrl: "https://app.devin.ai/settings",
+    useUsage: useDevinUsage,
+    renderDetail: renderDevinDetail,
+    getAccessory: getDevinAccessory,
+    formatUsageText: formatDevinUsageText,
   },
   gemini: {
     id: "gemini",
@@ -337,6 +354,7 @@ function listSubtitle(error: ErrorLike | null, isLoading: boolean): string {
   if (error) {
     if (error.type === "not_configured") return "Not Configured";
     if (error.type === "unauthorized") return "Token Expired";
+    if (error.type === "forbidden") return "No Access";
     if (error.type === "missing_scope") return "Missing Scope";
     if (error.type === "network_error") return "Network Error";
     return "Error";
@@ -375,6 +393,7 @@ export default function Command(props: LaunchProps<{ launchContext: CommandLaunc
   const copilotState = AGENT_REGISTRY.copilot.useUsage(Boolean(prefs.showCopilot));
   const cursorState = AGENT_REGISTRY.cursor.useUsage(Boolean(prefs.showCursor));
   const deepseekState = AGENT_REGISTRY.deepseek.useUsage(Boolean(prefs.showDeepSeek));
+  const devinState = AGENT_REGISTRY.devin.useUsage(Boolean(prefs.showDevin));
   const geminiState = AGENT_REGISTRY.gemini.useUsage(Boolean(prefs.showGemini));
   const opencodegoState = AGENT_REGISTRY["opencode-go"].useUsage(Boolean(prefs.showOpencodeGo));
 
@@ -395,6 +414,7 @@ export default function Command(props: LaunchProps<{ launchContext: CommandLaunc
     copilot: createAgentView(AGENT_REGISTRY.copilot, copilotState, Boolean(prefs.showCopilot)),
     cursor: createAgentView(AGENT_REGISTRY.cursor, cursorState, Boolean(prefs.showCursor)),
     deepseek: createAgentView(AGENT_REGISTRY.deepseek, deepseekState, Boolean(prefs.showDeepSeek)),
+    devin: createAgentView(AGENT_REGISTRY.devin, devinState, Boolean(prefs.showDevin)),
     gemini: createAgentView(AGENT_REGISTRY.gemini, geminiState, Boolean(prefs.showGemini)),
     "opencode-go": createAgentView(
       AGENT_REGISTRY["opencode-go"],
@@ -551,6 +571,7 @@ export default function Command(props: LaunchProps<{ launchContext: CommandLaunc
       isLoading={isLoading}
       isShowingDetail={true}
       searchBarPlaceholder="Search agents..."
+      searchBarAccessory={updatedAt ? `Updated ${updatedAt}` : undefined}
       actions={
         <ActionPanel>
           <Action

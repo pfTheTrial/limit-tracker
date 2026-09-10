@@ -20,6 +20,8 @@ import type { CursorError, CursorUsage } from "../cursor/types.ts";
 import { resolveDeepSeekApiKey } from "../deepseek/auth.ts";
 import { fetchDeepSeekUsage } from "../deepseek/fetcher.ts";
 import type { DeepSeekError, DeepSeekUsage } from "../deepseek/types.ts";
+import { fetchDevinUsage, resolveDevinApiKey } from "../devin/fetcher.ts";
+import type { DevinError, DevinUsage } from "../devin/types.ts";
 import { fetchGeminiUsage, readGeminiAuthKey } from "../gemini/fetcher.ts";
 import type { GeminiError, GeminiUsage } from "../gemini/types.ts";
 import { fetchOpencodegoUsage, fetchOpencodegoUsageWithApiKey } from "../opencode-go/fetcher.ts";
@@ -44,6 +46,7 @@ type SharedPrefs = {
   copilotAuthToken?: string;
   cursorCookieHeader?: string;
   deepseekApiKey?: string;
+  devinApiKey?: string;
   opencodegoApiKey?: string;
   opencodegoWorkspaceId?: string;
   opencodegoAuthCookie?: string;
@@ -151,6 +154,25 @@ export const useDeepSeekUsage = createUsageHook<DeepSeekUsage, DeepSeekError>({
       };
     }
     return fetchDeepSeekUsage(apiKey);
+  },
+});
+
+export const useDevinUsage = createUsageHook<DevinUsage, DevinError>({
+  agentId: "devin",
+  resolveAuthKey: async () => (await resolveDevinApiKey(prefValue("devinApiKey"))) ?? "",
+  fetcher: async () => {
+    const apiKey = await resolveDevinApiKey(prefValue("devinApiKey"));
+    if (!apiKey) {
+      return {
+        usage: null,
+        error: {
+          type: "not_configured",
+          message:
+            "Devin not configured. Add a cog_ service-user key in extension settings or set DEVIN_API_KEY (Enterprise plan only).",
+        },
+      };
+    }
+    return fetchDevinUsage(apiKey);
   },
 });
 

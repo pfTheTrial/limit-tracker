@@ -20,6 +20,7 @@ import {
   useCopilotUsage,
   useCursorUsage,
   useDeepSeekUsage,
+  useDevinUsage,
   useGeminiUsage,
   useOpencodegoUsage,
   useZaiAccounts,
@@ -33,6 +34,7 @@ import { getCommandcodeAccessory } from "./commandcode/renderer.tsx";
 import { getCopilotAccessory } from "./copilot/renderer.tsx";
 import { getCursorAccessory } from "./cursor/renderer.tsx";
 import { getDeepSeekAccessory } from "./deepseek/renderer.tsx";
+import { getDevinAccessory } from "./devin/renderer.tsx";
 import { getGeminiAccessory } from "./gemini/renderer.tsx";
 import { getOpencodegoAccessory } from "./opencode-go/renderer.tsx";
 import { getZaiAccessory } from "./zai/renderer.tsx";
@@ -71,6 +73,7 @@ export default function MenuBarCommand() {
   const isCopilotVisible = Boolean(prefs.showCopilot);
   const isCursorVisible = Boolean(prefs.showCursor);
   const isDeepSeekVisible = Boolean(prefs.showDeepSeek);
+  const isDevinVisible = Boolean(prefs.showDevin);
   const isGeminiVisible = Boolean(prefs.showGemini);
   const isOpencodeGoVisible = Boolean(prefs.showOpencodeGo);
   const isZaiVisible = Boolean(prefs.showZai);
@@ -82,6 +85,7 @@ export default function MenuBarCommand() {
   const copilotState = useCopilotUsage(isCopilotVisible);
   const cursorState = useCursorUsage(isCursorVisible);
   const deepseekState = useDeepSeekUsage(isDeepSeekVisible);
+  const devinState = useDevinUsage(isDevinVisible);
   const geminiState = useGeminiUsage(isGeminiVisible);
   const opencodegoState = useOpencodegoUsage(isOpencodeGoVisible);
   const zaiState = useZaiAccounts(isZaiVisible);
@@ -127,6 +131,16 @@ export default function MenuBarCommand() {
         accessory: getDeepSeekAccessory(deepseekState.usage, deepseekState.error, deepseekState.isLoading),
         revalidate: deepseekState.revalidate,
         lastFetchedAt: deepseekState.lastFetchedAt,
+      },
+      {
+        id: "devin",
+        name: "Devin",
+        icon: getThemeIcon("devin-icon.svg"),
+        visible: isDevinVisible,
+        isLoading: devinState.isLoading,
+        accessory: getDevinAccessory(devinState.usage, devinState.error, devinState.isLoading),
+        revalidate: devinState.revalidate,
+        lastFetchedAt: devinState.lastFetchedAt,
       },
       {
         id: "gemini",
@@ -176,6 +190,7 @@ export default function MenuBarCommand() {
       isCopilotVisible,
       isCursorVisible,
       isDeepSeekVisible,
+      isDevinVisible,
       isGeminiVisible,
       isOpencodeGoVisible,
       antigravityState.isLoading,
@@ -203,6 +218,11 @@ export default function MenuBarCommand() {
       deepseekState.error,
       deepseekState.revalidate,
       deepseekState.lastFetchedAt,
+      devinState.isLoading,
+      devinState.usage,
+      devinState.error,
+      devinState.revalidate,
+      devinState.lastFetchedAt,
       geminiState.isLoading,
       geminiState.usage,
       geminiState.error,

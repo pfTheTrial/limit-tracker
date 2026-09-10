@@ -11,9 +11,9 @@ import { useEffect, useState, useCallback, useRef } from "react";
 export function usePromise<T>(
   fn: () => Promise<T>,
   deps: unknown[] = [],
-  options?: { execute?: boolean },
+  options?: { execute?: boolean; initialData?: () => T | undefined },
 ): { data: T | undefined; isLoading: boolean; revalidate: () => Promise<void> } {
-  const [data, setData] = useState<T | undefined>(undefined);
+  const [data, setData] = useState<T | undefined>(() => options?.initialData?.());
   const [isLoading, setIsLoading] = useState(false);
   const mountedRef = useRef(true);
   const execute = options?.execute ?? true;
