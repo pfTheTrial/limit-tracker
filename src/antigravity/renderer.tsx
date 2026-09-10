@@ -1,25 +1,40 @@
 import { Icon, List } from "@vicinae/api";
-import React from "react";
+import type React from "react";
 
 import type { Accessory } from "../agents/types.ts";
-import { formatCountdown, LiveResetLabel } from "../agents/countdown.tsx";
-import { formatErrorOrNoData, generateAsciiBar, getLoadingAccessory, getNoDataAccessory, renderErrorOrNoData } from "../agents/ui.tsx";
+import { formatErrorOrNoData, getLoadingAccessory, getNoDataAccessory, renderErrorOrNoData } from "../agents/ui.tsx";
+import { LimitItems } from "../agents/limits.tsx";
+import { formatLimitsText } from "../agents/detail-format.ts";
+import type { LimitItem } from "../agents/detail-format.ts";
 import type { AntigravityError, AntigravityPool, AntigravityUsage } from "./types.ts";
 
 const VIA_OMP_NOTE = "Values via omp — may lag behind the live quota.";
 
-function poolTitle(pool: AntigravityPool): string {
-  return pool.windowLabel ? `${pool.label} (${pool.windowLabel})` : pool.label;
+/** "Usage (Google)" → "Google"; other labels pass through unchanged. */
+function poolName(label: string): string {
+  const match = /^Usage \((.+)\)$/.exec(label.trim());
+  return match?.[1]?.trim() || label;
 }
 
-function poolBarText(pool: AntigravityPool): string {
-  return `${generateAsciiBar(pool.percentRemaining)} ${pool.percentRemaining}% remaining`;
+function poolTitle(pool: AntigravityPool): string {
+  const name = poolName(pool.label);
+  return pool.windowLabel ? `${name} — ${pool.windowLabel}` : name;
 }
 
 function resetsInSeconds(pool: AntigravityPool): number | null {
   if (pool.resetsAtMs === null) return null;
   const seconds = Math.round((pool.resetsAtMs - Date.now()) / 1000);
   return seconds > 0 ? seconds : null;
+}
+
+function poolToLimitItem(pool: AntigravityPool): LimitItem {
+  return {
+    id: pool.id,
+    title: poolTitle(pool),
+    percentRemaining: pool.percentRemaining,
+    resetsInSeconds: resetsInSeconds(pool),
+    note: pool.status && pool.status !== "ok" ? pool.status : undefined,
+  };
 }
 
 function worstPool(pools: AntigravityPool[]): AntigravityPool {
@@ -31,15 +46,7 @@ export function formatAntigravityUsageText(usage: AntigravityUsage | null, error
   if (fallback !== null) return fallback;
   const u = usage as AntigravityUsage;
 
-  let text = `Antigravity Usage\nSource: ${VIA_OMP_NOTE}`;
-  for (const pool of u.pools) {
-    text += `\n\n${poolTitle(pool)}: ${poolBarText(pool)} [${pool.status}]`;
-    const seconds = resetsInSeconds(pool);
-    if (seconds !== null) {
-      text += `\nResets In: ${formatCountdown(seconds)}`;
-    }
-  }
-  return text;
+  return `Antigravity Usage\nSource: ${VIA_OMP_NOTE}` + formatLimitsText(u.pools.map(poolToLimitItem));
 }
 
 export function renderAntigravityDetail(usage: AntigravityUsage | null, error: AntigravityError | null): React.ReactNode {
@@ -50,13 +57,7 @@ export function renderAntigravityDetail(usage: AntigravityUsage | null, error: A
   return (
     <List.Item.Detail.Metadata>
       <List.Item.Detail.Metadata.Label title="Source" text="via omp" />
-      {u.pools.map((pool) => (
-        <React.Fragment key={pool.id}>
-          <List.Item.Detail.Metadata.Separator />
-          <List.Item.Detail.Metadata.Label title={poolTitle(pool)} text={`${poolBarText(pool)} [${pool.status}]`} />
-          {resetsInSeconds(pool) !== null && <LiveResetLabel seconds={resetsInSeconds(pool)} />}
-        </React.Fragment>
-      ))}
+      <LimitItems items={u.pools.map(poolToLimitItem)} />
     </List.Item.Detail.Metadata>
   );
 }

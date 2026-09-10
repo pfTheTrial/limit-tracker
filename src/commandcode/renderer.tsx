@@ -1,8 +1,10 @@
 import { List } from "@vicinae/api";
 
 import type { Accessory } from "../agents/types.ts";
-import { formatCountdown, LiveResetLabel } from "../agents/countdown.tsx";
-import { formatErrorOrNoData, generateAsciiBar, getLoadingAccessory, getNoDataAccessory, renderErrorOrNoData } from "../agents/ui.tsx";
+import { formatLimitsText } from "../agents/detail-format.ts";
+import type { LimitItem } from "../agents/detail-format.ts";
+import { LimitItems } from "../agents/limits.tsx";
+import { formatErrorOrNoData, getLoadingAccessory, getNoDataAccessory, renderErrorOrNoData } from "../agents/ui.tsx";
 import type { CommandcodeError, CommandcodeUsage } from "./types.ts";
 
 function formatCredits(value: number): string {
@@ -20,10 +22,20 @@ function percentRemaining(usage: CommandcodeUsage): number | null {
   return Math.min(100, Math.max(0, 100 - usage.percentUsed));
 }
 
-function limitBarText(usage: CommandcodeUsage): string | null {
-  const remaining = percentRemaining(usage);
-  if (remaining === null) return null;
-  return `${generateAsciiBar(remaining)} ${remaining.toFixed(1)}% remaining`;
+function commandcodeLimitItems(u: CommandcodeUsage): LimitItem[] {
+  const remaining = percentRemaining(u);
+  if (remaining === null) return [];
+  const seconds = renewsInSeconds(u);
+  return [
+    {
+      id: "credit-limit",
+      title: "Credit Limit",
+      percentRemaining: remaining,
+      resetsInSeconds: seconds,
+      resetsText:
+        seconds === null && u.daysRemaining !== undefined && u.daysRemaining !== null ? `${u.daysRemaining}d` : null,
+    },
+  ];
 }
 
 export function formatCommandcodeUsageText(usage: CommandcodeUsage | null, error: CommandcodeError | null): string {
@@ -33,16 +45,7 @@ export function formatCommandcodeUsageText(usage: CommandcodeUsage | null, error
 
   let text = "Command Code Usage";
   if (u.plan) text += `\nPlan: ${u.plan}`;
-  const bar = limitBarText(u);
-  if (bar) {
-    text += `\n\nCredit Limit: ${bar}`;
-    const seconds = renewsInSeconds(u);
-    if (seconds !== null) {
-      text += `\nResets In: ${formatCountdown(seconds)}`;
-    } else if (u.daysRemaining !== undefined && u.daysRemaining !== null) {
-      text += `\nResets In: ${u.daysRemaining}d`;
-    }
-  }
+  text += formatLimitsText(commandcodeLimitItems(u));
   if (u.creditsUsed !== undefined && u.creditsTotal !== undefined) {
     text += `\n\nCredits: ${formatCredits(u.creditsUsed)} of ${formatCredits(u.creditsTotal)}`;
   } else if (u.creditsTotal !== undefined) {
@@ -55,23 +58,13 @@ export function renderCommandcodeDetail(usage: CommandcodeUsage | null, error: C
   const fallback = renderErrorOrNoData(usage, error);
   if (fallback !== null) return fallback;
   const u = usage as CommandcodeUsage;
-  const bar = limitBarText(u);
-  const seconds = renewsInSeconds(u);
 
   return (
     <List.Item.Detail.Metadata>
       {u.plan ? <List.Item.Detail.Metadata.Label title="Plan" text={u.plan} /> : null}
-      {bar ? (
-        <>
-          <List.Item.Detail.Metadata.Separator />
-          <List.Item.Detail.Metadata.Label title="Credit Limit" text={bar} />
-          {seconds !== null ? (
-            <LiveResetLabel seconds={seconds} />
-          ) : u.daysRemaining !== undefined && u.daysRemaining !== null ? (
-            <List.Item.Detail.Metadata.Label title="Resets In" text={`${u.daysRemaining}d`} />
-          ) : null}
-        </>
-      ) : null}
+
+      <LimitItems items={commandcodeLimitItems(u)} />
+
       {u.creditsUsed !== undefined && u.creditsTotal !== undefined ? (
         <>
           <List.Item.Detail.Metadata.Separator />
