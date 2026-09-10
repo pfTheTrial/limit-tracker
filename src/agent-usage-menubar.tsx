@@ -11,7 +11,7 @@ import type { Image } from "@vicinae/api";
 import { useMemo } from "react";
 
 import { formatClock, latestTimestamp } from "./agents/format.ts";
-import { sortByDefaultAgentOrder } from "./agents/order.ts";
+import { parsePinnedProviders, sortByDefaultAgentOrder } from "./agents/order.ts";
 import {
   useAntigravityUsage,
   useClaudeUsage,
@@ -58,29 +58,6 @@ function getMenuItemTitle(name: string, value: string, isLoading: boolean, isOpe
 function getMenuItemTooltip(usageTooltip?: string): string {
   const actionHint = "Click to open details";
   return usageTooltip ? `${usageTooltip}\n${actionHint}` : actionHint;
-}
-
-function parsePinnedProviders(pinned?: string): AgentId[] {
-  if (!pinned) return [];
-  return pinned
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter((id): id is AgentId => {
-      const valid: AgentId[] = [
-        "claude",
-        "codex",
-        "copilot",
-        "cursor",
-        "deepseek",
-        "gemini",
-        "opencode-go",
-        "zai",
-        "antigravity",
-        "commandcode",
-      ];
-      return valid.includes(id as AgentId);
-    })
-    .slice(0, 3);
 }
 
 export default function MenuBarCommand() {
@@ -318,7 +295,7 @@ export default function MenuBarCommand() {
   const refreshTitle = `Refresh All (Updated ${updatedAt})`;
 
   return (
-    <MenuBarExtra icon="limit-tracker-icon.png" isLoading={isLoading} tooltip="Agent Usage">
+    <MenuBarExtra icon={getThemeIcon("limit-tracker-icon.svg")} isLoading={isLoading} tooltip="Agent Usage">
       <MenuBarExtra.Section>
         {visibleAgents.map((agent) => (
           <MenuBarExtra.Item

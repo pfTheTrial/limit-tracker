@@ -131,7 +131,7 @@ export const useCopilotUsage = createUsageHook<CopilotUsage, CopilotError>({
 
 export const useCursorUsage = createUsageHook<CursorUsage, CursorError>({
   agentId: "cursor",
-  resolveAuthKey: async () => resolveCursorCredential(prefValue("cursorCookieHeader"))?.cookieHeader ?? "",
+  resolveAuthKey: async () => (await resolveCursorCredential(prefValue("cursorCookieHeader")))?.cookieHeader ?? "",
   fetcher: () => fetchCursorUsage(prefValue("cursorCookieHeader")),
 });
 

@@ -6,3 +6,5 @@ vicinae-env.d.ts
 Thumbs.db
 vicinae/
 *.local
+
+.build/

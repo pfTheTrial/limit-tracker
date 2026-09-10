@@ -43,7 +43,6 @@ export async function httpFetch(options: HttpFetchOptions): Promise<HttpFetchRes
 
   try {
     const response = await fetch(url, { method, headers: allHeaders, body, signal: controller.signal });
-    clearTimeout(timeoutId);
 
     if (response.status === 401) {
       return { data: null, error: { type: "unauthorized", message: unauthorizedMessage } };
@@ -56,7 +55,6 @@ export async function httpFetch(options: HttpFetchOptions): Promise<HttpFetchRes
     const data = await response.json();
     return { data, error: null };
   } catch (err) {
-    clearTimeout(timeoutId);
     if (err instanceof Error && err.name === "AbortError") {
       return {
         data: null,
@@ -67,5 +65,7 @@ export async function httpFetch(options: HttpFetchOptions): Promise<HttpFetchRes
       data: null,
       error: { type: "network_error", message: err instanceof Error ? err.message : "Network request failed" },
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

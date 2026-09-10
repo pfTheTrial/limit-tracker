@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getInitialSelectedRowId, sortByDefaultAgentOrder } from "./order.ts";
+import { getInitialSelectedRowId, parsePinnedProviders, sortByDefaultAgentOrder } from "./order.ts";
 import type { AgentId } from "./types.ts";
 
 test("sortByDefaultAgentOrder uses the canonical provider order and keeps provider accounts together", () => {
@@ -71,4 +71,22 @@ test("getInitialSelectedRowId falls back to the first rendered row without a sav
 
   assert.equal(getInitialSelectedRowId(rows), "amp");
   assert.equal(getInitialSelectedRowId([]), undefined);
+});
+
+test("parsePinnedProviders normalizes case and whitespace", () => {
+  assert.deepEqual(parsePinnedProviders(" Claude ,CODEX, zai "), ["claude", "codex", "zai"]);
+});
+
+test("parsePinnedProviders drops unknown ids and accepts every registry provider", () => {
+  assert.deepEqual(parsePinnedProviders("kimi,antigravity,nope,commandcode"), ["antigravity", "commandcode"]);
+});
+
+test("parsePinnedProviders caps the list at three entries", () => {
+  assert.deepEqual(parsePinnedProviders("claude,codex,zai,copilot,cursor"), ["claude", "codex", "zai"]);
+});
+
+test("parsePinnedProviders returns an empty list for missing or empty input", () => {
+  assert.deepEqual(parsePinnedProviders(undefined), []);
+  assert.deepEqual(parsePinnedProviders(""), []);
+  assert.deepEqual(parsePinnedProviders(" , ,"), []);
 });

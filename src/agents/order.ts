@@ -24,6 +24,35 @@ export const DEFAULT_AGENT_ORDER = [
 
 const defaultOrderIndex = new Map<AgentId, number>(DEFAULT_AGENT_ORDER.map((agentId, index) => [agentId, index]));
 
+/** Providers that can be pinned — the ones wired into the registry today. */
+const PINNABLE_AGENT_IDS: ReadonlySet<AgentId> = new Set([
+  "antigravity",
+  "claude",
+  "codex",
+  "commandcode",
+  "copilot",
+  "cursor",
+  "deepseek",
+  "gemini",
+  "opencode-go",
+  "zai",
+]);
+
+const MAX_PINNED_PROVIDERS = 3;
+
+/**
+ * Parses the `pinnedProviders` preference (comma-separated provider ids).
+ * Unknown ids are dropped and at most MAX_PINNED_PROVIDERS are kept.
+ */
+export function parsePinnedProviders(pinned?: string): AgentId[] {
+  if (!pinned) return [];
+  return pinned
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter((id): id is AgentId => PINNABLE_AGENT_IDS.has(id as AgentId))
+    .slice(0, MAX_PINNED_PROVIDERS);
+}
+
 export function sortByDefaultAgentOrder<T extends { id: AgentId }>(agents: readonly T[]): T[] {
   return agents
     .map((agent, originalIndex) => ({ agent, originalIndex }))

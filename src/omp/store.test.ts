@@ -174,7 +174,7 @@ describe("readOmpStore", () => {
   });
 
   it("round-trips a fixture database", async (t) => {
-    let DatabaseSync: new (path: string) => { exec(s: string): void; prepare(s: string): unknown; close(): void };
+    let DatabaseSync: typeof import("node:sqlite").DatabaseSync;
     try {
       ({ DatabaseSync } = await import("node:sqlite"));
     } catch {

@@ -10,9 +10,10 @@
   "author": "pfTheTrial",
   "contributors": [],
   "scripts": {
-    "build": "vici build",
+    "build": "vici build --out .build/limit-tracker",
+    "install:local": "vici build",
     "dev": "vici develop",
-    "test": "node --test --experimental-strip-types \"**/*.test.ts\"",
+    "test": "node scripts/test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -57,6 +58,19 @@
       "required": false
     },
     {
+      "name": "claudeLimitView",
+      "type": "dropdown",
+      "title": "Claude Limit View",
+      "description": "Which Claude limit the list row and menu bar show by default",
+      "data": [
+        { "title": "Auto", "value": "auto" },
+        { "title": "5-hour", "value": "5h" },
+        { "title": "Weekly", "value": "weekly" }
+      ],
+      "default": "auto",
+      "required": false
+    },
+    {
       "name": "showCodex",
       "type": "checkbox",
       "label": "Show Codex",
@@ -71,6 +85,19 @@
       "title": "Additional Codex Homes (Optional)",
       "placeholder": "~/.codex-personal, ~/.codex-work",
       "description": "Comma-separated CODEX_HOME directories to include in addition to the default Codex home",
+      "required": false
+    },
+    {
+      "name": "codexLimitView",
+      "type": "dropdown",
+      "title": "Codex Limit View",
+      "description": "Which Codex limit the list row and menu bar show by default",
+      "data": [
+        { "title": "Auto", "value": "auto" },
+        { "title": "5-hour", "value": "5h" },
+        { "title": "Weekly", "value": "weekly" }
+      ],
+      "default": "auto",
       "required": false
     },
     {
@@ -185,6 +212,14 @@
       "type": "password",
       "title": "Command Code API Key (Optional)",
       "description": "Optional key. Usually auto-detected from ~/.commandcode/auth.json after `cmd login`, or COMMANDCODE_API_KEY.",
+      "required": false
+    },
+    {
+      "name": "pinnedProviders",
+      "type": "textfield",
+      "title": "Pinned Providers (Optional)",
+      "placeholder": "claude, codex, zai",
+      "description": "Comma-separated provider ids to pin at the top of the list and menu bar (up to 3)",
       "required": false
     },
     {

@@ -18,6 +18,7 @@ import { ManageAccountsForm } from "./accounts/ManageAccountsForm.tsx";
 import type { AccountUsageState } from "./accounts/types.ts";
 import { formatErrorMarkdown } from "./agents/detail-format.ts";
 import { formatClock, latestTimestamp } from "./agents/format.ts";
+import { parsePinnedProviders } from "./agents/order.ts";
 import {
   useAntigravityUsage,
   useClaudeUsage,
@@ -477,27 +478,7 @@ export default function Command(props: LaunchProps<{ launchContext: CommandLaunc
 
   type ListRow = { kind: "agent"; view: AgentView } | { kind: "accounted"; view: AccountedAgentView };
 
-  const pinnedIds = useMemo(() => {
-    const pinned = prefs.pinnedProviders;
-    if (!pinned) return [];
-    return pinned
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter((id): id is CoreAgentId => {
-        const valid: CoreAgentId[] = [
-          "claude",
-          "codex",
-          "copilot",
-          "cursor",
-          "deepseek",
-          "gemini",
-          "opencode-go",
-          "zai",
-        ];
-        return valid.includes(id as CoreAgentId);
-      })
-      .slice(0, 3);
-  }, [prefs.pinnedProviders]);
+  const pinnedIds = useMemo(() => parsePinnedProviders(prefs.pinnedProviders), [prefs.pinnedProviders]);
 
   const allRows = useMemo<ListRow[]>(
     () =>
@@ -531,12 +512,8 @@ export default function Command(props: LaunchProps<{ launchContext: CommandLaunc
     return [...pinned, ...rest];
   }, [allRows, pinnedIds]);
 
-  const isLoading = baseRows.some((row) =>
-    row.kind === "agent" ? row.view.isLoading : row.view.isLoading,
-  );
-  const latestFetchedAt = latestTimestamp(
-    baseRows.map((row) => (row.kind === "agent" ? row.view.lastFetchedAt : row.view.lastFetchedAt)),
-  );
+  const isLoading = baseRows.some((row) => row.view.isLoading);
+  const latestFetchedAt = latestTimestamp(baseRows.map((row) => row.view.lastFetchedAt));
   const updatedAt = !isLoading && latestFetchedAt ? formatClock(latestFetchedAt) : "";
 
   const handleRefreshAll = useCallback(async () => {
