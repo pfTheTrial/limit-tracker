@@ -2,7 +2,7 @@
 
 # Limit Tracker
 
-> Track AI coding agent limits across **Claude, Codex, Copilot, Cursor, DeepSeek, Devin, Gemini, OpenCode Go, z.ai, Antigravity and Command Code** — directly from [Vicinae](https://vicinae.com).
+> Track AI coding agent limits across **Claude, Codex, Copilot, Cursor, DeepSeek, Devin, Gemini, OpenCode Go, z.ai, Antigravity, Command Code, Kimi, Synthetic, ClinePass, Droid, MiniMax, Grok, Amp and AiHubMix** — directly from [Vicinae](https://vicinae.com).
 
 Limit Tracker is a **native Vicinae extension** (built with `@vicinae/api`, TypeScript and React). It shows each provider's plan, 5-hour and weekly limits, a live countdown to reset, per-model Claude windows, and the Codex manual-reset credit bank — in a clean master-detail list.
 
@@ -36,9 +36,8 @@ Limit Tracker is a **native Vicinae extension** (built with `@vicinae/api`, Type
 # 1. install dependencies
 npm ci
 
-# 2. type-check + run the test suite (no app required)
+# 2. type-check (test suite files are kept local-only, not committed)
 npm run typecheck      # tsc --noEmit
-npm test               # node --test --experimental-strip-types
 
 # 3. build in .build/limit-tracker without changing the installed extension
 npm run build
@@ -54,8 +53,10 @@ Confirm the extension directory used by your installed version before copying th
 bundle; preserve the existing `limit-tracker` directory as a backup. The ordinary
 build command does not copy into either profile directory.
 
-`npm test` discovers `.test.ts` files under `src` explicitly and fails when none
-are found. The HTTP timeout covers both response headers and the JSON body.
+The HTTP timeout covers both response headers and the JSON body. The local
+`npm test` suite (`*.test.ts` files, fetcher mock-server tests, manifest
+consistency checks) is maintained in the working copy but not committed to the
+repository.
 
 ### Development
 ```bash
@@ -191,15 +192,17 @@ limit-tracker/
 │   │   ├── ui.tsx             # Detail/Accessory helpers (progress ring, list icons)
 │   │   ├── countdown.tsx      # LiveResetLabel (live "Resets In" countdown)
 │   │   ├── format.ts          # Shared formatting (formatDuration, formatClock)
-│   │   ├── hooks.ts           # Cached-hook factories (TTL cache)
+│   │   ├── hooks.ts           # Cached-hook factories (TTL cache, stale-while-revalidate)
 │   │   ├── provider-hooks.ts  # All provider hook wirings
+│   │   ├── windowed.ts/.tsx   # Shared window-quota model → LimitItems (standard/compact)
 │   │   └── usage-cache.ts      # Pure cache helpers (tested)
 │   ├── accounts/              # Multi-account storage (Codex, z.ai)
-│   ├── claude/  codex/  copilot/  cursor/  deepseek/  gemini/  opencode-go/  zai/  # core 8 (v1)
-│   ├── antigravity/  commandcode/  # v1.1 additions (omp snapshots, Command Code API)
+│   ├── claude/  codex/  copilot/  cursor/  deepseek/  gemini/  opencode-go/  zai/
+│   ├── antigravity/  commandcode/  devin/   # v1.1 additions
+│   ├── kimi/  synthetic/  clinepass/  droid/  minimax/  grok/  amp/  aihubmix/  # windowed providers
 │   ├── omp/  # oh-my-pi harness credential + snapshot source (best-effort fallback)
 │   │   └── fetcher.ts renderer.tsx types.ts   # per-provider logic
-│   └── **/*.test.ts           # Node test-runner tests (colocated)
+│   └── **/*.test.ts           # Node test-runner tests (colocated, local-only)
 └── README.md
 ```
 
@@ -222,7 +225,9 @@ npm run typecheck
 npm test
 ```
 
-Expected: `tsc --noEmit` clean, `node --test` **0 failures**.
+Expected: `tsc --noEmit` clean, `node --test` **0 failures**. The test files
+(`*.test.ts`) live in the local working copy and are intentionally not part of
+the repository.
 
 ---
 
