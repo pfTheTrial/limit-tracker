@@ -1,10 +1,16 @@
 import { getPreferenceValues } from "@vicinae/api";
 
 import { loadAccounts } from "../accounts/storage.ts";
+import { fetchAihubmixUsage, resolveAihubmixApiKey } from "../aihubmix/fetcher.ts";
+import type { AihubmixError, AihubmixUsage } from "../aihubmix/types.ts";
+import { fetchAmpUsage, resolveAmpApiKey } from "../amp/fetcher.ts";
+import type { AmpError, AmpUsage } from "../amp/types.ts";
 import { fetchAntigravityUsage } from "../antigravity/fetcher.ts";
 import type { AntigravityError, AntigravityUsage } from "../antigravity/types.ts";
 import { fetchClaudeUsage, readClaudeCredentials } from "../claude/fetcher.ts";
 import type { ClaudeError, ClaudeUsage } from "../claude/types.ts";
+import { fetchClinepassUsage, resolveClinepassApiKey } from "../clinepass/fetcher.ts";
+import type { ClinepassError, ClinepassUsage } from "../clinepass/types.ts";
 import { resolveCommandcodeApiKey } from "../commandcode/auth.ts";
 import { fetchCommandcodeUsage } from "../commandcode/fetcher.ts";
 import type { CommandcodeError, CommandcodeUsage } from "../commandcode/types.ts";
@@ -20,13 +26,23 @@ import type { CursorError, CursorUsage } from "../cursor/types.ts";
 import { resolveDeepSeekApiKey } from "../deepseek/auth.ts";
 import { fetchDeepSeekUsage } from "../deepseek/fetcher.ts";
 import type { DeepSeekError, DeepSeekUsage } from "../deepseek/types.ts";
-import { fetchDevinUsage, resolveDevinApiKey } from "../devin/fetcher.ts";
+import { fetchDevinUsage, fetchDevinWebOnly, resolveDevinApiKey, resolveDevinSession } from "../devin/fetcher.ts";
 import type { DevinError, DevinUsage } from "../devin/types.ts";
+import { fetchDroidUsage, resolveFactoryApiKey } from "../droid/fetcher.ts";
+import type { DroidError, DroidUsage } from "../droid/types.ts";
 import { fetchGeminiUsage, readGeminiAuthKey } from "../gemini/fetcher.ts";
 import type { GeminiError, GeminiUsage } from "../gemini/types.ts";
+import { fetchGrokUsage, resolveGrokCredential } from "../grok/fetcher.ts";
+import type { GrokError, GrokUsage } from "../grok/types.ts";
+import { fetchKimiUsage, resolveKimiToken } from "../kimi/fetcher.ts";
+import type { KimiError, KimiUsage } from "../kimi/types.ts";
+import { fetchMinimaxUsage, resolveMinimaxApiKey, resolveMinimaxcnApiKey } from "../minimax/fetcher.ts";
+import type { MinimaxError, MinimaxUsage } from "../minimax/types.ts";
 import { fetchOpencodegoUsage, fetchOpencodegoUsageWithApiKey } from "../opencode-go/fetcher.ts";
 import type { OpencodegoError, OpencodegoUsage } from "../opencode-go/types.ts";
 import { findOmpAgentDir, getOmpApiKey, getOmpOAuth, isOmpTokenFresh, readOmpUsageSnapshots } from "../omp/store.ts";
+import { fetchSyntheticUsage, resolveSyntheticApiKey } from "../synthetic/fetcher.ts";
+import type { SyntheticError, SyntheticUsage } from "../synthetic/types.ts";
 import { resolveZaiAuthTokens } from "../zai/auth.ts";
 import { fetchZaiUsage, ZAI_OPENCODE_KEY } from "../zai/fetcher.ts";
 import type { ZaiError, ZaiUsage } from "../zai/types.ts";
@@ -42,14 +58,25 @@ import type { AgentVisibilityPreferences } from "./types.ts";
 
 type SharedPrefs = {
   additionalCodexHomes?: string;
+  aihubmixApiKey?: string;
+  ampApiKey?: string;
+  clinepassApiKey?: string;
   commandcodeApiKey?: string;
   copilotAuthToken?: string;
   cursorCookieHeader?: string;
   deepseekApiKey?: string;
   devinApiKey?: string;
+  devinSessionToken?: string;
+  devinOrganization?: string;
+  droidApiKey?: string;
+  grokBearerToken?: string;
+  kimiCodeApiKey?: string;
+  minimaxApiKey?: string;
+  minimaxcnApiKey?: string;
   opencodegoApiKey?: string;
   opencodegoWorkspaceId?: string;
   opencodegoAuthCookie?: string;
+  syntheticApiKey?: string;
   zaiApiToken?: string;
 };
 
@@ -159,20 +186,29 @@ export const useDeepSeekUsage = createUsageHook<DeepSeekUsage, DeepSeekError>({
 
 export const useDevinUsage = createUsageHook<DevinUsage, DevinError>({
   agentId: "devin",
-  resolveAuthKey: async () => (await resolveDevinApiKey(prefValue("devinApiKey"))) ?? "",
+  resolveAuthKey: async () =>
+    [
+      (await resolveDevinApiKey(prefValue("devinApiKey"))) ?? "",
+      resolveDevinSession(prefValue("devinSessionToken"), prefValue("devinOrganization"))?.token ?? "",
+      prefValue("devinOrganization"),
+    ].join("\n"),
   fetcher: async () => {
     const apiKey = await resolveDevinApiKey(prefValue("devinApiKey"));
-    if (!apiKey) {
+    const session = resolveDevinSession(prefValue("devinSessionToken"), prefValue("devinOrganization"));
+    if (!apiKey && !session) {
       return {
         usage: null,
         error: {
           type: "not_configured",
           message:
-            "Devin not configured. Add a cog_ service-user key in extension settings or set DEVIN_API_KEY (Enterprise plan only).",
+            "Devin not configured. Set the session token + organization (self-serve), or a cog_ service-user key (Enterprise ACU), in extension settings.",
         },
       };
     }
-    return fetchDevinUsage(apiKey);
+    // Session token alone → web-only daily/weekly quota (any plan).
+    if (!apiKey) return fetchDevinWebOnly(session!);
+    // Enterprise key (+optional session) → ACU limits merged with web quota.
+    return fetchDevinUsage(apiKey, session);
   },
 });
 
@@ -329,3 +365,158 @@ export const useZaiAccounts = createAccountsHook<
 async function resolveCopilotTokens() {
   return resolveCopilotAuthTokens({ preferenceToken: prefValue("copilotAuthToken") });
 }
+
+// --- Legacy providers (Phase 2): API-key / local-CLI credential sources ---
+
+export const useKimiUsage = createUsageHook<KimiUsage, KimiError>({
+  agentId: "kimi",
+  resolveAuthKey: async () => (await resolveKimiToken(prefValue("kimiCodeApiKey"))) ?? "",
+  fetcher: async () => {
+    const token = await resolveKimiToken(prefValue("kimiCodeApiKey"));
+    if (!token) {
+      return {
+        usage: null,
+        error: {
+          type: "not_configured",
+          message: "Kimi not configured. Add a Kimi Code API key in settings, set KIMI_CODE_API_KEY, or log in with the Kimi Code CLI.",
+        },
+      };
+    }
+    return fetchKimiUsage(token);
+  },
+});
+
+export const useSyntheticUsage = createUsageHook<SyntheticUsage, SyntheticError>({
+  agentId: "synthetic",
+  resolveAuthKey: async () => (await resolveSyntheticApiKey(prefValue("syntheticApiKey"))) ?? "",
+  fetcher: async () => {
+    const apiKey = await resolveSyntheticApiKey(prefValue("syntheticApiKey"));
+    if (!apiKey) {
+      return {
+        usage: null,
+        error: {
+          type: "not_configured",
+          message: "Synthetic not configured. Create an API key at dev.synthetic.new and add it in extension settings or set SYNTHETIC_API_KEY.",
+        },
+      };
+    }
+    return fetchSyntheticUsage(apiKey);
+  },
+});
+
+export const useClinepassUsage = createUsageHook<ClinepassUsage, ClinepassError>({
+  agentId: "clinepass",
+  resolveAuthKey: async () => (await resolveClinepassApiKey(prefValue("clinepassApiKey"))) ?? "",
+  fetcher: async () => {
+    const apiKey = await resolveClinepassApiKey(prefValue("clinepassApiKey"));
+    if (!apiKey) {
+      return {
+        usage: null,
+        error: {
+          type: "not_configured",
+          message: "ClinePass not configured. Create an API key in the Cline app and add it in extension settings or set CLINEPASS_API_KEY.",
+        },
+      };
+    }
+    return fetchClinepassUsage(apiKey);
+  },
+});
+
+export const useDroidUsage = createUsageHook<DroidUsage, DroidError>({
+  agentId: "droid",
+  resolveAuthKey: async () => (await resolveFactoryApiKey(prefValue("droidApiKey"))) ?? "",
+  fetcher: async () => {
+    const apiKey = await resolveFactoryApiKey(prefValue("droidApiKey"));
+    if (!apiKey) {
+      return {
+        usage: null,
+        error: {
+          type: "not_configured",
+          message: "Droid (Factory) not configured. Generate a key at app.factory.ai/settings/api-keys, set FACTORY_API_KEY, or keep it in ~/.factory/.env.",
+        },
+      };
+    }
+    return fetchDroidUsage(apiKey);
+  },
+});
+
+export const useMinimaxUsage = createUsageHook<MinimaxUsage, MinimaxError>({
+  agentId: "minimax",
+  resolveAuthKey: async () => (await resolveMinimaxApiKey(prefValue("minimaxApiKey"))) ?? "",
+  fetcher: async () => {
+    const apiKey = await resolveMinimaxApiKey(prefValue("minimaxApiKey"));
+    if (!apiKey) {
+      return {
+        usage: null,
+        error: {
+          type: "not_configured",
+          message: "MiniMax not configured. Create a Coding Plan key at platform.minimax.io and add it in extension settings or set MINIMAX_CODING_API_KEY.",
+        },
+      };
+    }
+    return fetchMinimaxUsage(apiKey, "global");
+  },
+});
+
+export const useMinimaxcnUsage = createUsageHook<MinimaxUsage, MinimaxError>({
+  agentId: "minimaxcn",
+  resolveAuthKey: async () => (await resolveMinimaxcnApiKey(prefValue("minimaxcnApiKey"))) ?? "",
+  fetcher: async () => {
+    const apiKey = await resolveMinimaxcnApiKey(prefValue("minimaxcnApiKey"));
+    if (!apiKey) {
+      return {
+        usage: null,
+        error: {
+          type: "not_configured",
+          message: "MiniMax (China) not configured. Create a Coding Plan key at platform.minimaxi.com and add it in extension settings or set MINIMAX_CN_API_KEY.",
+        },
+      };
+    }
+    return fetchMinimaxUsage(apiKey, "cn");
+  },
+});
+
+export const useGrokUsage = createUsageHook<GrokUsage, GrokError>({
+  agentId: "grok",
+  resolveAuthKey: async () => (await resolveGrokCredential(prefValue("grokBearerToken")))?.token ?? "",
+  fetcher: async () => {
+    const credential = await resolveGrokCredential(prefValue("grokBearerToken"));
+    if (!credential) {
+      return {
+        usage: null,
+        error: {
+          type: "not_configured",
+          message: "Grok not configured. Sign in with the Grok CLI (`grok login`), set GROK_OAUTH_TOKEN, or add a session token in extension settings.",
+        },
+      };
+    }
+    return fetchGrokUsage(credential);
+  },
+});
+
+export const useAmpUsage = createUsageHook<AmpUsage, AmpError>({
+  agentId: "amp",
+  resolveAuthKey: async () => (await resolveAmpApiKey(prefValue("ampApiKey"))) ?? "",
+  fetcher: async () => {
+    const apiKey = await resolveAmpApiKey(prefValue("ampApiKey"));
+    return fetchAmpUsage(apiKey);
+  },
+});
+
+export const useAihubmixUsage = createUsageHook<AihubmixUsage, AihubmixError>({
+  agentId: "aihubmix",
+  resolveAuthKey: async () => (await resolveAihubmixApiKey(prefValue("aihubmixApiKey"))) ?? "",
+  fetcher: async () => {
+    const apiKey = await resolveAihubmixApiKey(prefValue("aihubmixApiKey"));
+    if (!apiKey) {
+      return {
+        usage: null,
+        error: {
+          type: "not_configured",
+          message: "AiHubMix not configured. Create an API key at aihubmix.com and add it in extension settings or set AIHUBMIX_API_KEY.",
+        },
+      };
+    }
+    return fetchAihubmixUsage(apiKey);
+  },
+});

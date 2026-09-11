@@ -25,25 +25,54 @@ function scopeLabel(limit: DevinAcuLimit): string {
   return limit.scope === "org" ? `Org${suffix}` : `User${suffix}`;
 }
 
+function secondsUntil(ms: number | null): number | null {
+  if (ms === null) return null;
+  const seconds = Math.round((ms - Date.now()) / 1000);
+  return seconds > 0 ? seconds : null;
+}
+
 function devinLimitItems(u: DevinUsage): LimitItem[] {
+  const items: LimitItem[] = [];
+
+  if (u.web) {
+    if (u.web.dailyUsedPct !== null) {
+      items.push({
+        id: "daily",
+        title: "Daily Quota",
+        percentRemaining: Math.min(100, Math.max(0, 100 - u.web.dailyUsedPct)),
+        resetsInSeconds: secondsUntil(u.web.dailyResetMs),
+      });
+    }
+    if (u.web.weeklyUsedPct !== null) {
+      items.push({
+        id: "weekly",
+        title: "Weekly Quota",
+        percentRemaining: Math.min(100, Math.max(0, 100 - u.web.weeklyUsedPct)),
+        resetsInSeconds: secondsUntil(u.web.weeklyResetMs),
+      });
+    }
+  }
+
   const ordered = [...u.limits].sort((a, b) => (a.scope === "enterprise" ? -1 : b.scope === "enterprise" ? 1 : 0));
-  return ordered.map((limit, index) => {
+  for (const [index, limit] of ordered.entries()) {
     const title = `ACU Limit — ${scopeLabel(limit)}`;
     if (limit.scope !== "enterprise") {
       // Consumption data is enterprise-wide; per-org/user usage isn't exposed,
       // so narrower caps render as text rather than a fake percentage.
-      return { id: `limit-${index}`, title, percentRemaining: null, valueText: `${formatAcus(limit.cycleAcuLimit)}/cycle` };
+      items.push({ id: `limit-${index}`, title, percentRemaining: null, valueText: `${formatAcus(limit.cycleAcuLimit)}/cycle` });
+      continue;
     }
     const remaining = Math.max(0, limit.cycleAcuLimit - u.devinAcus);
     const percent = limit.cycleAcuLimit > 0 ? Math.min(100, Math.max(0, (remaining / limit.cycleAcuLimit) * 100)) : 0;
-    return {
+    items.push({
       id: `limit-${index}`,
       title,
       percentRemaining: percent,
       valueText: `${formatAcus(u.devinAcus)}/${formatAcus(limit.cycleAcuLimit)}`,
       resetsInSeconds: Math.max(0, Math.round((u.cycleEndMs - Date.now()) / 1000)),
-    };
-  });
+    });
+  }
+  return items;
 }
 
 function formatDate(ms: number): string {
@@ -58,14 +87,24 @@ function productBreakdown(u: DevinUsage): string {
   return parts.join(" · ");
 }
 
+function planLabel(u: DevinUsage): string {
+  return u.web?.plan ?? (u.limits.length > 0 ? "Enterprise" : "Devin");
+}
+
 export function formatDevinUsageText(usage: DevinUsage | null, error: DevinError | null): string {
   const fallback = formatErrorOrNoData("Devin", usage, error);
   if (fallback !== null) return fallback;
   const u = usage as DevinUsage;
 
-  let text = `Devin Usage\nPlan: Enterprise\nCycle: ${formatDate(u.cycleStartMs)} – ${formatDate(u.cycleEndMs)}`;
+  let text = `Devin Usage\nPlan: ${planLabel(u)}`;
+  if (u.cycleStartMs > 0) text += `\nCycle: ${formatDate(u.cycleStartMs)} – ${formatDate(u.cycleEndMs)}`;
   text += formatLimitsText(devinLimitItems(u));
-  text += `\n\nCycle Consumption: ${formatAcus(u.totalAcus)} (${productBreakdown(u)})`;
+  if (u.limits.length > 0) {
+    text += `\n\nCycle Consumption: ${formatAcus(u.totalAcus)} (${productBreakdown(u)})`;
+  }
+  if (u.web?.overageBalanceUsd != null) {
+    text += `\n\nExtra Usage Balance: $${u.web.overageBalanceUsd.toFixed(2)}`;
+  }
   return text;
 }
 
@@ -76,17 +115,29 @@ export function renderDevinDetail(usage: DevinUsage | null, error: DevinError | 
 
   return (
     <List.Item.Detail.Metadata>
-      <List.Item.Detail.Metadata.Label title="Plan" text="Enterprise" />
-      <List.Item.Detail.Metadata.Label
-        title="Cycle"
-        text={`${formatDate(u.cycleStartMs)} – ${formatDate(u.cycleEndMs)}`}
-      />
+      <List.Item.Detail.Metadata.Label title="Plan" text={planLabel(u)} />
+      {u.cycleStartMs > 0 ? (
+        <List.Item.Detail.Metadata.Label
+          title="Cycle"
+          text={`${formatDate(u.cycleStartMs)} – ${formatDate(u.cycleEndMs)}`}
+        />
+      ) : null}
 
       <LimitItems items={devinLimitItems(u)} />
 
-      <List.Item.Detail.Metadata.Separator />
-      <List.Item.Detail.Metadata.Label title="Cycle Consumption" text={formatAcus(u.totalAcus)} />
-      <List.Item.Detail.Metadata.Label title="By Product" text={productBreakdown(u)} />
+      {u.limits.length > 0 ? (
+        <>
+          <List.Item.Detail.Metadata.Separator />
+          <List.Item.Detail.Metadata.Label title="Cycle Consumption" text={formatAcus(u.totalAcus)} />
+          <List.Item.Detail.Metadata.Label title="By Product" text={productBreakdown(u)} />
+        </>
+      ) : null}
+      {u.web?.overageBalanceUsd != null ? (
+        <List.Item.Detail.Metadata.Label
+          title="Extra Usage Balance"
+          text={`$${u.web.overageBalanceUsd.toFixed(2)}`}
+        />
+      ) : null}
     </List.Item.Detail.Metadata>
   );
 }
@@ -103,6 +154,26 @@ export function getDevinAccessory(usage: DevinUsage | null, error: DevinError | 
   }
 
   if (!usage) return getNoDataAccessory();
+
+  // Self-serve path: weekly (or daily) remaining percent drives the accessory.
+  const web = usage.web;
+  if (web) {
+    const weeklyRemaining = web.weeklyUsedPct !== null ? Math.min(100, Math.max(0, 100 - web.weeklyUsedPct)) : null;
+    const dailyRemaining = web.dailyUsedPct !== null ? Math.min(100, Math.max(0, 100 - web.dailyUsedPct)) : null;
+    const primary = weeklyRemaining ?? dailyRemaining;
+    const tooltip = [
+      web.plan ? `Plan: ${web.plan}` : null,
+      dailyRemaining !== null ? `Daily: ${dailyRemaining.toFixed(1)}% remaining` : null,
+      weeklyRemaining !== null ? `Weekly: ${weeklyRemaining.toFixed(1)}% remaining` : null,
+      usage.limits.length > 0 ? `This cycle: ${formatAcus(usage.totalAcus)}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+    if (primary !== null) {
+      return { icon: generatePieIcon(Math.round(primary)), text: `${Math.round(primary)}%`, tooltip };
+    }
+    return { text: web.plan ?? "Devin", tooltip };
+  }
 
   const enterprise = usage.limits.find((limit) => limit.scope === "enterprise");
   const tooltip = [

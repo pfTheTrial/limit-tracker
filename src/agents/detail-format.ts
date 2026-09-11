@@ -10,7 +10,7 @@ export function formatErrorMarkdown(message: string): string {
 
 /**
  * Formats a remaining-second count as days/hours/minutes only (no seconds),
- * matching the Raycast "Resets In: 6d 18h" style.
+ * matching the "Resets In: 6d 18h" style.
  */
 export function formatCountdown(totalSeconds: number): string {
   if (totalSeconds <= 0) return "now";

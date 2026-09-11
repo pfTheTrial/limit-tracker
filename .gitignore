@@ -8,3 +8,11 @@ vicinae/
 *.local
 
 .build/
+
+# Tests and local docs are kept on disk only, never committed.
+*.test.ts
+src/agents/testkit.ts
+test/
+scripts/test.mjs
+AGENTS.md
+CLAUDE.md

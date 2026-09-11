@@ -1,11 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 
 /**
- * Minimal local replacement for `@raycast/utils`'s usePromise.
+ * Minimal promise-runner hook for the extension.
  *
- * The Vicinae native API does not re-export usePromise, so we provide it here
- * instead of pulling in the (Raycast-only) @raycast/utils package. The shape
- * matches what the rest of the extension already expects:
+ * The Vicinae native API does not export a usePromise equivalent, so we provide
+ * it here. The shape matches what the rest of the extension expects:
  *   { data, isLoading, revalidate }
  */
 export function usePromise<T>(

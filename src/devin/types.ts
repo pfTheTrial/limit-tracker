@@ -15,8 +15,18 @@ export interface DevinProductAcus {
   review: number;
 }
 
+/** Self-serve quota from app.devin.ai/api/<org>/billing/quota/usage. */
+export interface DevinWebQuota {
+  dailyUsedPct: number | null;
+  dailyResetMs: number | null;
+  weeklyUsedPct: number | null;
+  weeklyResetMs: number | null;
+  plan: string | null;
+  overageBalanceUsd: number | null;
+}
+
 export interface DevinUsage {
-  /** Current billing cycle bounds, epoch ms. */
+  /** Current billing cycle bounds, epoch ms (Enterprise path). */
   cycleStartMs: number;
   cycleEndMs: number;
   /** Org-level Devin ACU limits for the enterprise (any scope). */
@@ -26,6 +36,8 @@ export interface DevinUsage {
   /** Cycle consumption attributed to the Devin product. */
   devinAcus: number;
   byProduct: DevinProductAcus;
+  /** Self-serve daily/weekly quotas (web path) — present for any plan. */
+  web: DevinWebQuota | null;
 }
 
 export interface DevinError {

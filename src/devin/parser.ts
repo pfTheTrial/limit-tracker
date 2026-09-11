@@ -1,4 +1,4 @@
-import type { DevinAcuLimit, DevinLimitScope, DevinProductAcus, DevinUsage } from "./types.ts";
+import type { DevinAcuLimit, DevinLimitScope, DevinProductAcus, DevinUsage, DevinWebQuota } from "./types.ts";
 
 /**
  * Pure parsers for the Devin v3 consumption API. No @vicinae/api imports —
@@ -112,6 +112,7 @@ export function buildDevinUsage(input: {
   cycles: DevinCycle[];
   daily: DevinDailyConsumption | null;
   nowMs: number;
+  web?: DevinWebQuota | null;
 }): DevinUsage | null {
   const cycle = pickCurrentCycle(input.cycles, input.nowMs);
   if (!cycle) return null;
@@ -122,5 +123,91 @@ export function buildDevinUsage(input: {
     totalAcus: input.daily?.totalAcus ?? 0,
     devinAcus: input.daily?.devinAcus ?? 0,
     byProduct: input.daily?.byProduct ?? { devin: 0, cascade: 0, terminal: 0, review: 0 },
+    web: input.web ?? null,
+  };
+}
+
+// --- Self-serve web quota (app.devin.ai/api/<org>/billing/quota/usage) ---
+
+function fractionToPercent(value: unknown): number | null {
+  const n = asNum(value);
+  if (n === undefined || n < 0) return null;
+  return n < 1 ? n * 100 : n;
+}
+
+function dateToMs(value: unknown): number | null {
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return epochToMs(value);
+}
+
+const PLAN_KEYS = ["plan_name", "planName", "plan", "tier", "subscription_tier", "subscriptionTier"];
+
+/**
+ * Parse the self-serve quota payload. Primary keys are daily_percentage /
+ * daily_reset_at / weekly_percentage / weekly_reset_at; falls back to nested
+ * objects whose key contains "daily"/"weekly" with percent-ish fields.
+ * Values < 1 are treated as fractions and scaled to percent.
+ */
+export function parseDevinWebQuota(data: unknown): DevinWebQuota | null {
+  const root = asRecord(data);
+  if (!root) return null;
+
+  const dailyUsed = fractionToPercent(root.daily_percentage);
+  const weeklyUsed = fractionToPercent(root.weekly_percentage);
+  const dailyReset = dateToMs(root.daily_reset_at);
+  const weeklyReset = dateToMs(root.weekly_reset_at);
+
+  const findWindow = (matcher: (key: string) => boolean) => {
+    const scopes: unknown[] = [root, root.data, root.quota, root.limits];
+    for (const scopeValue of scopes) {
+      const scope = asRecord(scopeValue);
+      if (!scope) continue;
+      for (const [key, value] of Object.entries(scope)) {
+        if (!matcher(key.toLowerCase())) continue;
+        const entry = asRecord(value);
+        if (!entry) continue;
+        const pct =
+          fractionToPercent(entry.used_percent) ??
+          fractionToPercent(entry.usedPercent) ??
+          fractionToPercent(entry.percent_used) ??
+          fractionToPercent(entry.percentUsed) ??
+          fractionToPercent(entry.percent) ??
+          fractionToPercent(entry.usage_percent) ??
+          fractionToPercent(entry.usagePercent);
+        const reset = dateToMs(entry.resets_at) ?? dateToMs(entry.resetsAt) ?? dateToMs(entry.reset_at);
+        if (pct !== null || reset !== null) return { pct, reset };
+      }
+    }
+    return { pct: null, reset: null };
+  };
+
+  const dailyFallback = dailyUsed === null ? findWindow((k) => k.includes("daily")) : null;
+  const weeklyFallback = weeklyUsed === null ? findWindow((k) => k.includes("weekly")) : null;
+
+  const daily = dailyUsed ?? dailyFallback?.pct ?? null;
+  const weekly = weeklyUsed ?? weeklyFallback?.pct ?? null;
+  const dailyResetMs = dailyReset ?? dailyFallback?.reset ?? null;
+  const weeklyResetMs = weeklyReset ?? weeklyFallback?.reset ?? null;
+
+  if (daily === null && weekly === null) return null;
+
+  const overageUsd =
+    asNum(root.overage_balance) ?? (asNum(root.overage_balance_cents) !== undefined
+      ? (asNum(root.overage_balance_cents) as number) / 100
+      : undefined);
+  const plan = PLAN_KEYS.map((key) => root[key]).find(
+    (v): v is string => typeof v === "string" && v.trim() !== "",
+  );
+
+  return {
+    dailyUsedPct: daily,
+    dailyResetMs,
+    weeklyUsedPct: weekly,
+    weeklyResetMs,
+    plan: plan?.trim() ?? null,
+    overageBalanceUsd: overageUsd ?? null,
   };
 }
