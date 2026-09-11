@@ -1,4 +1,4 @@
-![Limit Tracker — Vicinae Extension](metadata/banner.png)
+![Limit Tracker — Vicinae Extension](metadata/banner.jpg)
 
 # Limit Tracker
 
@@ -10,7 +10,7 @@ Limit Tracker is a **native Vicinae extension** (built with `@vicinae/api`, Type
 
 ## Preview
 
-![OpenCode Go — 5h / Weekly / Monthly with live Resets In](assets/preview-opencode-go.png)
+![OpenCode Go — 5h / Weekly / Monthly with live Resets In](assets/preview-opencode-go.jpg)
 *Screenshot: OpenCode Go detail with standardized 5h/Weekly/Monthly limits and live Resets In — same layout as Claude/Codex.*
 
 ---
